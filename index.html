@@ -19,57 +19,102 @@
       <button class="button primary" id="replayBtn">Replay intro</button>
     </div>
   </header>
+
   <main class="workspace">
     <aside class="inspector">
       <div class="inspector-scroll">
-        <section class="inspector-intro"><div class="eyebrow">Animation builder</div><h1>Собери поведение логотипа</h1><p>Shader живёт внутри звезды. Дополнительные WebGL-эффекты можно наслаивать сверху; wordmark остаётся отдельным чистым слоем.</p></section>
+        <section class="inspector-intro">
+          <div class="eyebrow">Animation builder</div>
+          <h1>Собери поведение логотипа</h1>
+          <p>Основной shader живёт внутри звезды. Дополнительные слои можно наслаивать сверху, а внешние эффекты — выводить за её контур.</p>
+        </section>
+
         <section class="step-section step-primary" data-step="shader">
           <div class="step-heading"><span class="step-index">1</span><div><h2>Base shader</h2><p>Основная поверхность звезды</p></div></div>
+
+          <div class="library-label">Core effects</div>
           <div class="effect-grid" id="effectGrid">
             <button class="effect-card is-active" type="button" data-effect="strands"><span class="effect-preview effect-preview-strands"></span><span class="effect-name">Strands</span><span class="effect-desc">Световые нити</span></button>
             <button class="effect-card" type="button" data-effect="galaxy"><span class="effect-preview effect-preview-galaxy"></span><span class="effect-name">Galaxy</span><span class="effect-desc">Звёздное поле</span></button>
             <button class="effect-card" type="button" data-effect="prismatic"><span class="effect-preview effect-preview-prismatic"></span><span class="effect-name">Prismatic</span><span class="effect-desc">Спектральный burst</span></button>
             <button class="effect-card" type="button" data-effect="siderays"><span class="effect-preview effect-preview-rays"></span><span class="effect-name">Side Rays</span><span class="effect-desc">Направленные лучи</span></button>
-            <button class="effect-card effect-card-wide" type="button" data-effect="silk"><span class="effect-preview effect-preview-silk"></span><span class="effect-name">Silk</span><span class="effect-desc">Мягкая текучая поверхность</span></button>
+            <button class="effect-card" type="button" data-effect="silk"><span class="effect-preview effect-preview-silk"></span><span class="effect-name">Silk</span><span class="effect-desc">Текучая поверхность</span></button>
+            <button class="effect-card" type="button" data-effect="gradflow"><span class="effect-preview effect-preview-gradflow"></span><span class="effect-name">GradFlow</span><span class="effect-desc">9 WebGL gradients</span></button>
           </div>
-          <select id="shaderMode" class="visually-hidden" aria-hidden="true"><option value="strands">Strands</option><option value="galaxy">Galaxy</option><option value="prismatic">Prismatic Burst</option><option value="siderays">Side Rays</option><option value="silk">Silk</option></select>
+          <select id="shaderMode" class="visually-hidden" aria-hidden="true"><option value="strands">Strands</option><option value="galaxy">Galaxy</option><option value="prismatic">Prismatic</option><option value="siderays">Side Rays</option><option value="silk">Silk</option><option value="gradflow">GradFlow</option></select>
+
+          <div class="gradflow-settings" id="baseGradflowSettings" hidden>
+            <div class="library-label">GradFlow type</div>
+            <div class="gradflow-type-grid" id="gradflowTypeGrid">
+              <button type="button" data-grad-type="aurora" class="grad-type is-active">Aurora</button>
+              <button type="button" data-grad-type="mesh" class="grad-type">Mesh</button>
+              <button type="button" data-grad-type="smoke" class="grad-type">Smoke</button>
+              <button type="button" data-grad-type="wave" class="grad-type">Wave</button>
+              <button type="button" data-grad-type="animated" class="grad-type">Animated</button>
+              <button type="button" data-grad-type="conic" class="grad-type">Conic</button>
+              <button type="button" data-grad-type="stripe" class="grad-type">Stripe</button>
+              <button type="button" data-grad-type="silk" class="grad-type">Silk</button>
+              <button type="button" data-grad-type="linear" class="grad-type">Linear</button>
+            </div>
+            <label class="slider-row"><span>Noise</span><output id="gradflowNoiseVal"></output><input id="gradflowNoise" type="range" min="0" max="0.5" step="0.01" value="0.2" /></label>
+          </div>
+
           <div class="control-group first-control-group"><div class="group-label">Behavior</div><div class="segmented" id="shaderRoleSegmented"><button type="button" class="segment is-active" data-role="fill">Always on</button><button type="button" class="segment" data-role="reveal">Intro only</button></div><select id="shaderRole" class="visually-hidden" aria-hidden="true"><option value="fill">Always on</option><option value="reveal">Intro only</option></select></div>
-          <div class="control-group"><div class="group-head"><div><div class="group-label">Base controls</div><div class="group-note">Общие параметры для WebGL-стека</div></div><button class="text-button" type="button" id="presetPaletteBtn">Reset effect</button></div><div class="slider-stack">
-            <label class="slider-row"><span>Speed</span><output id="speedVal"></output><input id="speed" type="range" min="0.1" max="3" step="0.05" value="1" /></label>
-            <label class="slider-row"><span>Scale</span><output id="scaleVal"></output><input id="scale" type="range" min="0.4" max="3" step="0.05" value="1" /></label>
-            <label class="slider-row"><span>Intensity</span><output id="intensityVal"></output><input id="intensity" type="range" min="0.1" max="2" step="0.05" value="1" /></label>
-            <label class="slider-row"><span>Opacity</span><output id="opacityVal"></output><input id="opacity" type="range" min="0.1" max="1" step="0.05" value="1" /></label>
-          </div></div>
-          <details class="subsection" open><summary><span>Palette</span><span class="summary-meta">shared by all shader layers</span></summary><div class="subsection-body"><div class="palette-grid">
+
+          <div class="control-group">
+            <div class="group-head"><div><div class="group-label">Base controls</div><div class="group-note">Общие параметры для текущего shader</div></div><button class="text-button" type="button" id="presetPaletteBtn">Reset effect</button></div>
+            <div class="slider-stack">
+              <label class="slider-row"><span>Speed</span><output id="speedVal"></output><input id="speed" type="range" min="0.1" max="3" step="0.05" value="1" /></label>
+              <label class="slider-row"><span>Scale</span><output id="scaleVal"></output><input id="scale" type="range" min="0.4" max="3" step="0.05" value="1" /></label>
+              <label class="slider-row"><span>Intensity</span><output id="intensityVal"></output><input id="intensity" type="range" min="0.1" max="2" step="0.05" value="1" /></label>
+              <label class="slider-row"><span>Opacity</span><output id="opacityVal"></output><input id="opacity" type="range" min="0.1" max="1" step="0.05" value="1" /></label>
+            </div>
+          </div>
+
+          <details class="subsection" open><summary><span>Palette</span><span class="summary-meta">shared by shader layers</span></summary><div class="subsection-body"><div class="palette-grid">
             <label class="color-control"><span>01</span><input id="c1" type="color" value="#FF4242"><input id="c1Text" type="text" value="#FF4242"></label>
             <label class="color-control"><span>02</span><input id="c2" type="color" value="#7C3AED"><input id="c2Text" type="text" value="#7C3AED"></label>
             <label class="color-control"><span>03</span><input id="c3" type="color" value="#06B6D4"><input id="c3Text" type="text" value="#06B6D4"></label>
             <label class="color-control"><span>04</span><input id="c4" type="color" value="#EAB308"><input id="c4Text" type="text" value="#EAB308"></label>
           </div></div></details>
-          <details class="subsection" open><summary><span>Effect layers</span><span class="summary-meta" id="layerCount">0 overlays</span></summary><div class="subsection-body"><div class="layer-stack" id="layerList"></div><button class="button secondary full-button" id="addLayerBtn" type="button">+ Add WebGL layer</button><div class="logic-note">Overlay-слои используют ту же палитру и скорость, но имеют собственный blend mode и opacity.</div></div></details>
+
+          <details class="subsection" open><summary><span>Effect layers</span><span class="summary-meta" id="layerCount">0 overlays</span></summary>
+            <div class="subsection-body">
+              <div class="layer-stack" id="layerList"></div>
+              <div class="add-layer-grid">
+                <button class="button secondary full-button" id="addLayerBtn" type="button">+ Add shader layer</button>
+                <button class="button secondary full-button accent-button" id="addShadowBtn" type="button">+ Add chromatic shadow</button>
+              </div>
+              <div class="logic-note">GradFlow работает как fill/overlay внутри звезды. Chromatic Shadow — внешний WebGL-слой и может реагировать на курсор.</div>
+            </div>
+          </details>
+
           <details class="subsection"><summary><span>Wordmark</span><span class="summary-meta">always visible</span></summary><div class="subsection-body"><div class="row-between"><div><div class="group-label">Auto contrast</div><div class="group-note">Белый на тёмном, тёмный на светлом</div></div><div class="switch on" id="wordmarkAuto" role="switch"></div></div><label class="field-block wordmark-color"><span>Custom color</span><div class="color-inline"><input id="wordmarkColor" type="color" value="#FFFFFF"><input id="wordmarkColorText" type="text" value="#FFFFFF"></div></label></div></details>
         </section>
+
         <details class="step-section collapsible-step" data-step="motion" open><summary class="step-heading"><span class="step-index">2</span><div class="step-copy"><h2>Motion</h2><p>Чистое появление без деформации path</p></div><span class="step-summary" id="motionSummary">1.0s</span></summary><div class="step-body">
           <div class="control-group compact-group"><div class="group-label">Playback</div><div class="segmented" id="autoplaySegmented"><button type="button" class="segment is-active" data-autoplay="loop">Manual replay</button><button type="button" class="segment" data-autoplay="auto">Auto preview</button></div><select id="autoplayMode" class="visually-hidden"><option value="loop">Manual</option><option value="auto">Auto</option></select></div>
           <div class="slider-stack"><label class="slider-row"><span>Duration</span><output id="revealDurationVal"></output><input id="revealDuration" type="range" min="0.25" max="2.5" step="0.05" value="1"></label><label class="slider-row"><span>Delay</span><output id="revealDelayVal"></output><input id="revealDelay" type="range" min="0" max="1.2" step="0.05" value="0.05"></label><label class="slider-row"><span>Start scale</span><output id="introStartScaleVal"></output><input id="introStartScale" type="range" min="0.55" max="1" step="0.01" value="0.82"></label></div>
-          <div class="logic-note">Никакой деформации геометрии: path звезды всегда остаётся исходным.</div><div class="inner-divider"></div>
+          <div class="inner-divider"></div>
           <div class="row-between"><div><div class="group-label">Hover perspective</div><div class="group-note">3D-наклон только звезды; wordmark остаётся стабильным</div></div><div class="switch on" id="hoverEnabled" role="switch"></div></div>
           <div class="field-row hover-fields"><label class="field-block"><span>Direction</span><select id="hoverMode"><option value="follow">Follow cursor</option><option value="inverse">Inverse</option><option value="diagonal">Diagonal</option></select></label><label class="field-block"><span>Perspective</span><select id="hoverPerspective"><option value="1100">Soft</option><option value="760" selected>Medium</option><option value="520">Deep</option></select></label></div>
           <label class="slider-row hover-strength"><span>Tilt strength</span><output id="hoverStrengthVal"></output><input id="hoverStrength" type="range" min="1" max="14" step="0.5" value="6"></label>
         </div></details>
-        <details class="step-section collapsible-step" data-step="glow" open><summary class="step-heading"><span class="step-index">3</span><div class="step-copy"><h2>Border glow</h2><p>ReactBits-style directional edge glow</p></div><div class="switch on" id="glowEnabled" role="switch"></div></summary><div class="step-body">
-          <div class="reactbits-note">Поведение повторяет ключевую механику ReactBits Border Glow: угол от курсора, proximity к краю, cone mask и многослойный outer glow.</div>
+
+        <details class="step-section collapsible-step" data-step="glow" open><summary class="step-heading"><span class="step-index">3</span><div class="step-copy"><h2>Border glow</h2><p>Directional edge glow</p></div><div class="switch on" id="glowEnabled" role="switch"></div></summary><div class="step-body">
           <div class="row-between glow-sweep-row"><div><div class="group-label">Animated sweep</div><div class="group-note">Автопроход, когда курсор не над звездой</div></div><div class="switch on" id="glowAnimated" role="switch"></div></div>
           <label class="field-block"><span>Glow color</span><div class="color-inline"><input id="glowColor" type="color" value="#FFD58A"><input id="glowColorText" type="text" value="#FFD58A"></div></label>
           <div class="slider-stack glow-controls"><label class="slider-row"><span>Edge sensitivity</span><output id="glowEdgeSensitivityVal"></output><input id="glowEdgeSensitivity" type="range" min="0" max="70" step="1" value="30"></label><label class="slider-row"><span>Glow radius</span><output id="glowRadiusVal"></output><input id="glowRadius" type="range" min="8" max="70" step="1" value="40"></label><label class="slider-row"><span>Glow intensity</span><output id="glowIntensityVal"></output><input id="glowIntensity" type="range" min="0.2" max="2" step="0.05" value="1"></label><label class="slider-row"><span>Cone spread</span><output id="glowConeSpreadVal"></output><input id="glowConeSpread" type="range" min="8" max="42" step="1" value="25"></label></div>
         </div></details>
+
         <details class="step-section collapsible-step preset-step" data-step="preset"><summary class="step-heading"><span class="step-index">4</span><div class="step-copy"><h2>Preset data</h2><p>Импорт, копирование и ручная правка</p></div></summary><div class="step-body"><div class="preset-actions"><button class="button secondary" id="copyPresetBtn">Copy JSON</button><button class="button secondary" id="applyDumpBtn">Apply JSON</button></div><textarea id="presetDump" spellcheck="false"></textarea></div></details>
       </div>
     </aside>
+
     <section class="preview-area">
       <div class="preview-toolbar"><div class="preview-title-block"><span class="live-dot"></span><div><strong>Live preview</strong><span id="activeEffectLabel">Strands · base</span></div></div><div class="preview-actions"><div class="background-switcher"><span>Background</span><select id="bgMode"><option value="dark">Dark</option><option value="light">Light</option><option value="transparent">Transparent</option></select></div><button class="button icon-button" id="previewReplayBtn" type="button" title="Replay intro">↻</button></div></div>
       <div class="stage-frame" id="stageCard"><div class="checker" id="checker"></div><div class="stage"><div class="shell"><div class="shapeWrap" id="shapeWrap"></div></div></div><div class="stage-badge">Star geometry locked · wordmark visible</div></div>
-      <div class="preview-footer"><div class="preview-legend"><span class="legend-swatch"></span><span>WebGL layers — clipped to star</span></div><div class="preview-legend"><span class="legend-line"></span><span>Border Glow — pointer / sweep driven</span></div><div class="preview-legend"><span class="legend-type">T</span><span>Wordmark — separate vector layer</span></div></div>
+      <div class="preview-footer"><div class="preview-legend"><span class="legend-swatch"></span><span>Fill shaders — clipped to star</span></div><div class="preview-legend"><span class="legend-shadow"></span><span>Chromatic Shadow — outside star</span></div><div class="preview-legend"><span class="legend-type">T</span><span>Wordmark — separate vector layer</span></div></div>
     </section>
   </main>
 </div>
