@@ -7,49 +7,257 @@
   <link rel="stylesheet" href="v2.css" />
 </head>
 <body>
-<div class="app">
-  <div class="top">
-    <div class="brand"><div class="mark"></div>Star Shader Lab <span class="badge">shadcn-style</span></div>
-    <div class="hint">Only the uploaded star shape, only WebGL effects</div>
-    <div style="margin-left:auto" class="btnrow">
-      <label class="btn"><input id="importFile" type="file" accept=".json,.html,.htm">Load settings</label>
-      <button class="btn" id="savePresetBtn">Save preset JSON</button>
-      <button class="btn primary" id="replayBtn">Replay intro</button>
-    </div>
-  </div>
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="tabs">
-        <button class="tab active" data-tab="shader">Shader</button>
-        <button class="tab" data-tab="motion">Motion</button>
-        <button class="tab" data-tab="glow">Glow</button>
-        <button class="tab" data-tab="preset">Preset</button>
+<div class="app-shell">
+  <header class="app-header">
+    <div class="brand-block">
+      <div class="brand-mark">✦</div>
+      <div>
+        <div class="brand-title">Star Shader Lab</div>
+        <div class="brand-caption">Tribute mark · WebGL playground</div>
       </div>
-      <section class="tab-panel" data-panel="shader">
-        <div class="panel"><div class="title">Shape source</div><div class="sub">Берём только звезду из приложенного SVG. Текстовая часть логотипа не используется.</div><div class="row"><span class="hint">Target</span><span class="badge">Tribute star</span></div></div>
-        <div class="panel"><div class="title">WebGL shader</div><div class="grid2"><div class="field"><label>Effect</label><select id="shaderMode"><option value="strands">Strands</option><option value="galaxy">Galaxy</option><option value="prismatic">Prismatic Burst</option><option value="siderays">Side Rays</option><option value="silk">Silk</option></select></div><div class="field"><label>Shader role</label><select id="shaderRole"><option value="fill">Main fill</option><option value="reveal">Reveal only</option></select></div></div><div class="grid3"><div class="field"><label>Speed <span id="speedVal" class="hint"></span></label><input id="speed" type="range" min="0.1" max="3" step="0.05" value="1"></div><div class="field"><label>Scale <span id="scaleVal" class="hint"></span></label><input id="scale" type="range" min="0.4" max="3" step="0.05" value="1"></div><div class="field"><label>Intensity <span id="intensityVal" class="hint"></span></label><input id="intensity" type="range" min="0.1" max="2" step="0.05" value="1"></div></div><div class="grid2"><div class="field"><label>Opacity <span id="opacityVal" class="hint"></span></label><input id="opacity" type="range" min="0.1" max="1" step="0.05" value="1"></div><div class="field"><label>Palette</label><button class="btn" id="presetPaletteBtn">ReactBits defaults</button></div></div><div class="sub" style="margin-top:12px">Эти HEX используются как общая палитра для выбранного WebGL-эффекта.</div><div class="grid2"><div class="field"><label>Color 1</label><div class="colorRow"><input id="c1" type="color" value="#FF4242"><input id="c1Text" type="text" value="#FF4242"></div></div><div class="field"><label>Color 2</label><div class="colorRow"><input id="c2" type="color" value="#7C3AED"><input id="c2Text" type="text" value="#7C3AED"></div></div><div class="field"><label>Color 3</label><div class="colorRow"><input id="c3" type="color" value="#06B6D4"><input id="c3Text" type="text" value="#06B6D4"></div></div><div class="field"><label>Color 4</label><div class="colorRow"><input id="c4" type="color" value="#EAB308"><input id="c4Text" type="text" value="#EAB308"></div></div></div></div>
-      </section>
-      <section class="tab-panel" data-panel="motion" hidden>
-        <div class="panel"><div class="title">Reveal / morph</div><div class="sub">Во время интро звезда может временно искажаться и менять форму, но в конце всегда возвращается в точную финальную форму.</div><div class="grid2"><div class="field"><label>Intro preset</label><select id="introPreset"><option value="settle">Settle in</option><option value="burst">Burst morph</option><option value="drift">Soft drift</option></select></div><div class="field"><label>Autoplay</label><select id="autoplayMode"><option value="loop">Replay manually</option><option value="auto">Auto on change</option></select></div></div><div class="grid2"><div class="field"><label>Duration <span id="revealDurationVal" class="hint"></span></label><input id="revealDuration" type="range" min="0.3" max="3" step="0.05" value="1.25"></div><div class="field"><label>Delay <span id="revealDelayVal" class="hint"></span></label><input id="revealDelay" type="range" min="0" max="1.5" step="0.05" value="0.1"></div></div><div class="grid2"><div class="field"><label>Morph strength <span id="morphStrengthVal" class="hint"></span></label><input id="morphStrength" type="range" min="0" max="1" step="0.05" value="0.45"></div><div class="field"><label>Overshoot <span id="overshootVal" class="hint"></span></label><input id="overshoot" type="range" min="0" max="0.45" step="0.01" value="0.16"></div></div><div class="grid2"><div class="field"><label>Rotation <span id="rotationVal" class="hint"></span></label><input id="rotation" type="range" min="-45" max="45" step="1" value="10"></div><div class="field"><label>Intro blur <span id="introBlurVal" class="hint"></span></label><input id="introBlur" type="range" min="0" max="18" step="0.5" value="4"></div></div></div>
-      </section>
-      <section class="tab-panel" data-panel="glow" hidden>
-        <div class="panel"><div class="row"><div><div class="title" style="margin-bottom:3px">Border glow</div><div class="sub" style="margin:0">Настройки по духу приближены к ReactBits Border Glow, но применены к контуру SVG.</div></div><div id="glowEnabled" class="switch on"></div></div><div class="grid2" style="margin-top:12px"><div class="field"><label>Glow color</label><div class="colorRow"><input id="glowColor" type="color" value="#FFFFFF"><input id="glowColorText" type="text" value="#FFFFFF"></div></div><div class="field"><label>Blend mode</label><select id="glowBlend"><option value="screen">Screen</option><option value="plus-lighter">Plus lighter</option><option value="normal">Normal</option></select></div></div><div class="grid2"><div class="field"><label>Thickness <span id="glowThicknessVal" class="hint"></span></label><input id="glowThickness" type="range" min="1" max="14" step="0.5" value="4"></div><div class="field"><label>Blur <span id="glowBlurVal" class="hint"></span></label><input id="glowBlur" type="range" min="0" max="24" step="0.5" value="10"></div></div><div class="grid2"><div class="field"><label>Spread <span id="glowSpreadVal" class="hint"></span></label><input id="glowSpread" type="range" min="0.02" max="0.55" step="0.01" value="0.22"></div><div class="field"><label>Opacity <span id="glowOpacityVal" class="hint"></span></label><input id="glowOpacity" type="range" min="0" max="1" step="0.05" value="0.85"></div></div><div class="grid2"><div class="field"><label>Sweep duration <span id="glowDurationVal" class="hint"></span></label><input id="glowDuration" type="range" min="0.8" max="8" step="0.1" value="3.6"></div><div class="field"><label>Feather <span id="glowFeatherVal" class="hint"></span></label><input id="glowFeather" type="range" min="0.05" max="1" step="0.05" value="0.45"></div></div></div>
-      </section>
-      <section class="tab-panel" data-panel="preset" hidden>
-        <div class="panel"><div class="title">Import / export settings</div><div class="sub">Поддерживается новый preset JSON и best-effort загрузка прошлых exported HTML вроде файла, который ты приложил.</div><div class="btnrow"><button class="btn" id="copyPresetBtn">Copy preset JSON</button><button class="btn" id="applyDumpBtn">Apply JSON from box</button></div></div>
-        <div class="panel"><div class="title">Current preset JSON</div><textarea id="presetDump"></textarea></div>
-      </section>
+    </div>
+
+    <div class="header-actions">
+      <label class="button secondary">
+        <input id="importFile" type="file" accept=".json,.html,.htm" />
+        Load preset
+      </label>
+      <button class="button secondary" id="savePresetBtn">Save preset</button>
+      <button class="button primary" id="replayBtn">Replay intro</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="inspector">
+      <div class="inspector-scroll">
+        <section class="inspector-intro">
+          <div class="eyebrow">Animation builder</div>
+          <h1>Собери поведение звезды</h1>
+          <p>Сначала выбери характер shader-а. Motion и glow — дополнительные слои, которые можно подключать после.</p>
+        </section>
+
+        <section class="step-section step-primary" data-step="shader">
+          <div class="step-heading">
+            <span class="step-index">1</span>
+            <div>
+              <h2>Shader</h2>
+              <p>Основной визуальный характер формы</p>
+            </div>
+          </div>
+
+          <div class="effect-grid" id="effectGrid">
+            <button class="effect-card is-active" type="button" data-effect="strands">
+              <span class="effect-preview effect-preview-strands"></span>
+              <span class="effect-name">Strands</span>
+              <span class="effect-desc">Световые нити</span>
+            </button>
+            <button class="effect-card" type="button" data-effect="galaxy">
+              <span class="effect-preview effect-preview-galaxy"></span>
+              <span class="effect-name">Galaxy</span>
+              <span class="effect-desc">Звёздное поле</span>
+            </button>
+            <button class="effect-card" type="button" data-effect="prismatic">
+              <span class="effect-preview effect-preview-prismatic"></span>
+              <span class="effect-name">Prismatic</span>
+              <span class="effect-desc">Спектральный burst</span>
+            </button>
+            <button class="effect-card" type="button" data-effect="siderays">
+              <span class="effect-preview effect-preview-rays"></span>
+              <span class="effect-name">Side Rays</span>
+              <span class="effect-desc">Направленные лучи</span>
+            </button>
+            <button class="effect-card effect-card-wide" type="button" data-effect="silk">
+              <span class="effect-preview effect-preview-silk"></span>
+              <span class="effect-name">Silk</span>
+              <span class="effect-desc">Мягкая текучая поверхность</span>
+            </button>
+          </div>
+
+          <select id="shaderMode" class="visually-hidden" aria-hidden="true">
+            <option value="strands">Strands</option>
+            <option value="galaxy">Galaxy</option>
+            <option value="prismatic">Prismatic Burst</option>
+            <option value="siderays">Side Rays</option>
+            <option value="silk">Silk</option>
+          </select>
+
+          <div class="control-group first-control-group">
+            <div class="group-label">Behavior</div>
+            <div class="segmented" id="shaderRoleSegmented">
+              <button type="button" class="segment is-active" data-role="fill">Lives inside shape</button>
+              <button type="button" class="segment" data-role="reveal">Reveal only</button>
+            </div>
+            <select id="shaderRole" class="visually-hidden" aria-hidden="true">
+              <option value="fill">Main fill</option>
+              <option value="reveal">Reveal only</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="group-head">
+              <div>
+                <div class="group-label">Shader controls</div>
+                <div class="group-note">Главные параметры эффекта</div>
+              </div>
+              <button class="text-button" type="button" id="presetPaletteBtn">Reset effect</button>
+            </div>
+
+            <div class="slider-stack">
+              <label class="slider-row">
+                <span>Speed</span><output id="speedVal"></output>
+                <input id="speed" type="range" min="0.1" max="3" step="0.05" value="1" />
+              </label>
+              <label class="slider-row">
+                <span>Scale</span><output id="scaleVal"></output>
+                <input id="scale" type="range" min="0.4" max="3" step="0.05" value="1" />
+              </label>
+              <label class="slider-row">
+                <span>Intensity</span><output id="intensityVal"></output>
+                <input id="intensity" type="range" min="0.1" max="2" step="0.05" value="1" />
+              </label>
+              <label class="slider-row">
+                <span>Opacity</span><output id="opacityVal"></output>
+                <input id="opacity" type="range" min="0.1" max="1" step="0.05" value="1" />
+              </label>
+            </div>
+          </div>
+
+          <details class="subsection" open>
+            <summary>
+              <span>Palette</span>
+              <span class="summary-meta">4 colors</span>
+            </summary>
+            <div class="subsection-body">
+              <div class="palette-grid">
+                <label class="color-control"><span>01</span><input id="c1" type="color" value="#FF4242"><input id="c1Text" type="text" value="#FF4242"></label>
+                <label class="color-control"><span>02</span><input id="c2" type="color" value="#7C3AED"><input id="c2Text" type="text" value="#7C3AED"></label>
+                <label class="color-control"><span>03</span><input id="c3" type="color" value="#06B6D4"><input id="c3Text" type="text" value="#06B6D4"></label>
+                <label class="color-control"><span>04</span><input id="c4" type="color" value="#EAB308"><input id="c4Text" type="text" value="#EAB308"></label>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <details class="step-section collapsible-step" data-step="motion">
+          <summary class="step-heading">
+            <span class="step-index">2</span>
+            <div class="step-copy">
+              <h2>Motion</h2>
+              <p>Как форма появляется и собирается</p>
+            </div>
+            <span class="step-summary" id="motionSummary">1.25s · morph 45%</span>
+          </summary>
+          <div class="step-body">
+            <select id="introPreset" class="visually-hidden" aria-hidden="true"><option value="settle">Settle in</option><option value="burst">Burst morph</option><option value="drift">Soft drift</option></select>
+
+            <div class="control-group compact-group">
+              <div class="group-label">Playback</div>
+              <div class="segmented" id="autoplaySegmented">
+                <button type="button" class="segment is-active" data-autoplay="loop">Manual replay</button>
+                <button type="button" class="segment" data-autoplay="auto">Auto preview</button>
+              </div>
+              <select id="autoplayMode" class="visually-hidden" aria-hidden="true"><option value="loop">Replay manually</option><option value="auto">Auto on change</option></select>
+            </div>
+
+            <div class="slider-stack">
+              <label class="slider-row"><span>Duration</span><output id="revealDurationVal"></output><input id="revealDuration" type="range" min="0.3" max="3" step="0.05" value="1.25"></label>
+              <label class="slider-row"><span>Delay</span><output id="revealDelayVal"></output><input id="revealDelay" type="range" min="0" max="1.5" step="0.05" value="0.1"></label>
+              <label class="slider-row"><span>Morph strength</span><output id="morphStrengthVal"></output><input id="morphStrength" type="range" min="0" max="1" step="0.05" value="0.45"></label>
+              <label class="slider-row"><span>Overshoot</span><output id="overshootVal"></output><input id="overshoot" type="range" min="0" max="0.45" step="0.01" value="0.16"></label>
+              <label class="slider-row"><span>Rotation</span><output id="rotationVal"></output><input id="rotation" type="range" min="-45" max="45" step="1" value="10"></label>
+              <label class="slider-row"><span>Intro blur</span><output id="introBlurVal"></output><input id="introBlur" type="range" min="0" max="18" step="0.5" value="4"></label>
+            </div>
+
+            <div class="logic-note">На 100% анимации форма всегда возвращается к исходной геометрии звезды.</div>
+          </div>
+        </details>
+
+        <details class="step-section collapsible-step" data-step="glow">
+          <summary class="step-heading">
+            <span class="step-index">3</span>
+            <div class="step-copy">
+              <h2>Border glow</h2>
+              <p>Дополнительный свет по контуру</p>
+            </div>
+            <div class="switch" id="glowEnabled" role="switch" aria-label="Enable border glow"></div>
+          </summary>
+          <div class="step-body">
+            <div class="control-group compact-group">
+              <div class="field-row">
+                <label class="field-block"><span>Glow color</span><div class="color-inline"><input id="glowColor" type="color" value="#FFFFFF"><input id="glowColorText" type="text" value="#FFFFFF"></div></label>
+                <label class="field-block"><span>Blend</span><select id="glowBlend"><option value="screen">Screen</option><option value="plus-lighter">Plus lighter</option><option value="normal">Normal</option></select></label>
+              </div>
+            </div>
+
+            <div class="slider-stack">
+              <label class="slider-row"><span>Thickness</span><output id="glowThicknessVal"></output><input id="glowThickness" type="range" min="1" max="14" step="0.5" value="4"></label>
+              <label class="slider-row"><span>Blur</span><output id="glowBlurVal"></output><input id="glowBlur" type="range" min="0" max="24" step="0.5" value="10"></label>
+              <label class="slider-row"><span>Spread</span><output id="glowSpreadVal"></output><input id="glowSpread" type="range" min="0.02" max="0.55" step="0.01" value="0.22"></label>
+              <label class="slider-row"><span>Opacity</span><output id="glowOpacityVal"></output><input id="glowOpacity" type="range" min="0" max="1" step="0.05" value="0.85"></label>
+              <label class="slider-row"><span>Sweep duration</span><output id="glowDurationVal"></output><input id="glowDuration" type="range" min="0.8" max="8" step="0.1" value="3.6"></label>
+              <label class="slider-row"><span>Feather</span><output id="glowFeatherVal"></output><input id="glowFeather" type="range" min="0.05" max="1" step="0.05" value="0.45"></label>
+            </div>
+          </div>
+        </details>
+
+        <details class="step-section collapsible-step preset-step" data-step="preset">
+          <summary class="step-heading">
+            <span class="step-index">4</span>
+            <div class="step-copy">
+              <h2>Preset data</h2>
+              <p>Импорт, копирование и ручная правка</p>
+            </div>
+          </summary>
+          <div class="step-body">
+            <div class="preset-actions">
+              <button class="button secondary" id="copyPresetBtn">Copy JSON</button>
+              <button class="button secondary" id="applyDumpBtn">Apply JSON</button>
+            </div>
+            <textarea id="presetDump" spellcheck="false"></textarea>
+          </div>
+        </details>
+      </div>
     </aside>
-    <section class="main">
-      <div class="head"><div><div style="font-size:18px;font-weight:700;letter-spacing:-.02em">Preview</div><div class="hint">WebGL effects on the fixed star mark</div></div><div><select id="bgMode" style="width:140px"><option value="dark">Dark</option><option value="light">Light</option><option value="transparent">Transparent</option></select></div></div>
-      <div class="stageCard" id="stageCard"><div class="checker" id="checker"></div><div class="stage"><div class="shell"><div class="shapeWrap" id="shapeWrap"></div></div></div></div>
-      <div class="bottom">В режиме <b>Main fill</b> shader становится самой заливкой формы. В режиме <b>Reveal only</b> shader показывается только на интро, а финальная звезда остаётся цветом первого HEX.</div>
+
+    <section class="preview-area">
+      <div class="preview-toolbar">
+        <div class="preview-title-block">
+          <span class="live-dot"></span>
+          <div>
+            <strong>Live preview</strong>
+            <span id="activeEffectLabel">Strands · lives inside shape</span>
+          </div>
+        </div>
+        <div class="preview-actions">
+          <div class="background-switcher">
+            <span>Background</span>
+            <select id="bgMode"><option value="dark">Dark</option><option value="light">Light</option><option value="transparent">Transparent</option></select>
+          </div>
+          <button class="button icon-button" id="previewReplayBtn" type="button" title="Replay intro">↻</button>
+        </div>
+      </div>
+
+      <div class="stage-frame" id="stageCard">
+        <div class="checker" id="checker"></div>
+        <div class="stage">
+          <div class="shell">
+            <div class="shapeWrap" id="shapeWrap"></div>
+          </div>
+        </div>
+        <div class="stage-badge">Final geometry locked</div>
+      </div>
+
+      <div class="preview-footer">
+        <div class="preview-legend"><span class="legend-swatch"></span><span>Shader — основная поверхность</span></div>
+        <div class="preview-legend"><span class="legend-line"></span><span>Glow — независимый контурный слой</span></div>
+      </div>
     </section>
-  </div>
+  </main>
 </div>
 <div class="toast" id="toast"></div>
 <script src="v2-shaders-a.js"></script>
 <script src="v2-shaders-b.js"></script>
 <script src="v2-app.js"></script>
+<script src="v3-ui.js"></script>
 </body>
 </html>
