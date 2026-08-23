@@ -2,6 +2,11 @@
 
 Browser-based WebGL playground for the Tribute star mark.
 
+## Live
+https://svg-motion-studio-tam1rlan.vercel.app
+
+The live URL loads the current files from `main`, so future edits keep the same address.
+
 ## Current structure
 - Fixed Tribute star + visible wordmark
 - Base WebGL shader inside the star
@@ -15,6 +20,3 @@ Browser-based WebGL playground for the Tribute star mark.
 
 ## Run locally
 Open `index.html` in a modern Chromium-based browser with WebGL2 enabled.
-
-## Deployment
-The repository includes `.github/workflows/pages.yml` so pushes to `main` automatically publish the current `index.html`, `styles.css`, `app.js`, and `shaders.js` once GitHub Pages is enabled for the repository.
