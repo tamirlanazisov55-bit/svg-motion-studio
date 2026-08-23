@@ -19,9 +19,7 @@
 
   <main class="workspace">
     <aside class="sidebar">
-      <div class="side-head">
-        <div><div class="side-title">SVG / Layers</div><div class="side-sub">Выбери объект для анимации</div></div>
-      </div>
+      <div class="side-head"><div><div class="side-title">SVG / Layers</div><div class="side-sub">Выбери объект для анимации</div></div></div>
       <div class="side-scroll">
         <label class="upload" id="dropZone">
           <input id="fileInput" type="file" accept="image/svg+xml,.svg" hidden>
@@ -39,9 +37,7 @@
         <button class="seg" data-bg="light">Light</button>
         <button class="seg" data-bg="transparent">Alpha</button>
       </div>
-      <div class="stage" id="stage">
-        <div class="preview-shell" id="preview"></div>
-      </div>
+      <div class="stage" id="stage"><div class="preview-shell" id="preview"></div></div>
       <div class="hint">Клик по фигуре в SVG тоже выбирает её слой</div>
     </section>
 
@@ -54,7 +50,7 @@
       <div class="settings" id="settingsPanel">
         <div data-panel="ambient">
           <div class="section">
-            <div class="section-title">Animated gradient <span class="switch on" id="gradientToggle"></span></div>
+            <div class="section-title">Surface colors / Gradient <span class="switch on" id="gradientToggle"></span></div>
             <div class="row stack">
               <div class="label">Цвета</div>
               <div class="colors">
@@ -82,15 +78,7 @@
             <div class="row"><span class="label">Shader</span><select id="shaderMode"><option value="strands">Strands</option><option value="galaxy">Galaxy</option><option value="prismatic">Prismatic Burst</option><option value="siderays">Side Rays</option><option value="silk">Silk</option></select></div>
             <button class="btn small" id="referencePresetBtn" style="width:100%;margin:-2px 0 8px">Reset to ReactBits reference</button>
             <div class="row"><span class="label">Behavior</span><select id="shaderPlacement"><option value="ambient">Inside shape · loop</option><option value="reveal">Reveal only</option></select></div>
-            <div class="row stack">
-              <div class="label">Shader colors</div>
-              <div class="colors">
-                <div class="color-box"><input type="color" id="shaderC1" value="#ff4242"><input class="hex-input" id="shaderC1Hex" value="#FF4242" maxlength="7" spellcheck="false"></div>
-                <div class="color-box"><input type="color" id="shaderC2" value="#7c3aed"><input class="hex-input" id="shaderC2Hex" value="#7C3AED" maxlength="7" spellcheck="false"></div>
-                <div class="color-box"><input type="color" id="shaderC3" value="#06b6d4"><input class="hex-input" id="shaderC3Hex" value="#06B6D4" maxlength="7" spellcheck="false"></div>
-                <div class="color-box"><input type="color" id="shaderC4" value="#eab308"><input class="hex-input" id="shaderC4Hex" value="#EAB308" maxlength="7" spellcheck="false"></div>
-              </div>
-            </div>
+            <div class="notice" style="margin-bottom:10px">Shader uses the same HEX palette from <b>Surface colors</b> above. In <b>Inside shape · loop</b> mode it replaces the gradient instead of sitting over or under it.</div>
             <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Speed</span><span class="value" id="shaderSpeedV"></span></div><input type="range" id="shaderSpeed" min=".1" max="3" step=".05" value="1"></div>
             <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Scale</span><span class="value" id="shaderScaleV"></span></div><input type="range" id="shaderScale" min=".45" max="3" step=".05" value="1"></div>
             <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Intensity</span><span class="value" id="shaderIntensityV"></span></div><input type="range" id="shaderIntensity" min=".1" max="2" step=".05" value="1"></div>
@@ -148,6 +136,7 @@
 <script src="app.part3.js"></script>
 <script src="app.part4.js"></script>
 <script src="app.part5.js"></script>
+<script src="app.part6.js"></script>
 <script src="app-run.js"></script>
 </body>
 </html>
