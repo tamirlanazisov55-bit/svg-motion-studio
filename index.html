@@ -16,7 +16,8 @@
     <div class="header-actions">
       <label class="button secondary"><input id="importFile" type="file" accept=".json,.html,.htm" />Load preset</label>
       <button class="button secondary" id="savePresetBtn">Save preset</button>
-      <button class="button primary" id="replayBtn">Replay intro</button>
+      <button class="button primary" id="exportHtmlBtn">Export HTML</button>
+      <button class="button secondary" id="replayBtn">Replay intro</button>
     </div>
   </header>
 
@@ -94,7 +95,7 @@
 
         <details class="step-section collapsible-step" data-step="motion" open><summary class="step-heading"><span class="step-index">2</span><div class="step-copy"><h2>Motion</h2><p>Чистое появление без деформации path</p></div><span class="step-summary" id="motionSummary">1.0s</span></summary><div class="step-body">
           <div class="control-group compact-group"><div class="group-label">Playback</div><div class="segmented" id="autoplaySegmented"><button type="button" class="segment is-active" data-autoplay="loop">Manual replay</button><button type="button" class="segment" data-autoplay="auto">Auto preview</button></div><select id="autoplayMode" class="visually-hidden"><option value="loop">Manual</option><option value="auto">Auto</option></select></div>
-          <div class="slider-stack"><label class="slider-row"><span>Duration</span><output id="revealDurationVal"></output><input id="revealDuration" type="range" min="0.25" max="2.5" step="0.05" value="1"></label><label class="slider-row"><span>Delay</span><output id="revealDelayVal"></output><input id="revealDelay" type="range" min="0" max="1.2" step="0.05" value="0.05"></label><label class="slider-row"><span>Start scale</span><output id="introStartScaleVal"></output><input id="introStartScale" type="range" min="0.55" max="1" step="0.01" value="0.82"></label></div>
+          <div class="field-row"><label class="field-block"><span>Reveal mode</span><select id="revealMode"><option value="scale">Scale fade</option><option value="clockwise">Clockwise sweep</option></select></label><label class="field-block"><span>Easing curve</span><select id="revealEasing"><option value="smooth">Smooth</option><option value="easeout">Ease out</option><option value="snappy">Snappy</option><option value="linear">Linear</option></select></label></div><div class="slider-stack"><label class="slider-row"><span>Duration</span><output id="revealDurationVal"></output><input id="revealDuration" type="range" min="0.25" max="2.5" step="0.05" value="1"></label><label class="slider-row"><span>Delay</span><output id="revealDelayVal"></output><input id="revealDelay" type="range" min="0" max="1.2" step="0.05" value="0.05"></label><label class="slider-row"><span>Start scale</span><output id="introStartScaleVal"></output><input id="introStartScale" type="range" min="0.04" max="1" step="0.01" value="0.18"></label></div>
           <div class="inner-divider"></div>
           <div class="row-between"><div><div class="group-label">Hover perspective</div><div class="group-note">3D-наклон только звезды; wordmark остаётся стабильным</div></div><div class="switch on" id="hoverEnabled" role="switch"></div></div>
           <div class="field-row hover-fields"><label class="field-block"><span>Direction</span><select id="hoverMode"><option value="follow">Follow cursor</option><option value="inverse">Inverse</option><option value="diagonal">Diagonal</option></select></label><label class="field-block"><span>Perspective</span><select id="hoverPerspective"><option value="1100">Soft</option><option value="760" selected>Medium</option><option value="520">Deep</option></select></label></div>
@@ -104,7 +105,7 @@
         <details class="step-section collapsible-step" data-step="glow" open><summary class="step-heading"><span class="step-index">3</span><div class="step-copy"><h2>Border glow</h2><p>Directional edge glow</p></div><div class="switch on" id="glowEnabled" role="switch"></div></summary><div class="step-body">
           <div class="row-between glow-sweep-row"><div><div class="group-label">Animated sweep</div><div class="group-note">Автопроход, когда курсор не над звездой</div></div><div class="switch on" id="glowAnimated" role="switch"></div></div>
           <label class="field-block"><span>Glow color</span><div class="color-inline"><input id="glowColor" type="color" value="#FFD58A"><input id="glowColorText" type="text" value="#FFD58A"></div></label>
-          <div class="slider-stack glow-controls"><label class="slider-row"><span>Edge sensitivity</span><output id="glowEdgeSensitivityVal"></output><input id="glowEdgeSensitivity" type="range" min="0" max="70" step="1" value="30"></label><label class="slider-row"><span>Glow radius</span><output id="glowRadiusVal"></output><input id="glowRadius" type="range" min="8" max="70" step="1" value="40"></label><label class="slider-row"><span>Glow intensity</span><output id="glowIntensityVal"></output><input id="glowIntensity" type="range" min="0.2" max="2" step="0.05" value="1"></label><label class="slider-row"><span>Cone spread</span><output id="glowConeSpreadVal"></output><input id="glowConeSpread" type="range" min="8" max="42" step="1" value="25"></label></div>
+          <div class="slider-stack glow-controls"><label class="slider-row"><span>Edge sensitivity</span><output id="glowEdgeSensitivityVal"></output><input id="glowEdgeSensitivity" type="range" min="0" max="70" step="1" value="30"></label><label class="slider-row"><span>Stroke thickness</span><output id="glowStrokeThicknessVal"></output><input id="glowStrokeThickness" type="range" min="0.5" max="3" step="0.05" value="1"></label><label class="slider-row"><span>Glow radius</span><output id="glowRadiusVal"></output><input id="glowRadius" type="range" min="8" max="70" step="1" value="40"></label><label class="slider-row"><span>Glow intensity</span><output id="glowIntensityVal"></output><input id="glowIntensity" type="range" min="0.2" max="2" step="0.05" value="1"></label><label class="slider-row"><span>Cone spread</span><output id="glowConeSpreadVal"></output><input id="glowConeSpread" type="range" min="8" max="42" step="1" value="25"></label></div>
         </div></details>
 
         <details class="step-section collapsible-step preset-step" data-step="preset"><summary class="step-heading"><span class="step-index">4</span><div class="step-copy"><h2>Preset data</h2><p>Импорт, копирование и ручная правка</p></div></summary><div class="step-body"><div class="preset-actions"><button class="button secondary" id="copyPresetBtn">Copy JSON</button><button class="button secondary" id="applyDumpBtn">Apply JSON</button></div><textarea id="presetDump" spellcheck="false"></textarea></div></details>
@@ -121,5 +122,6 @@
 <div class="toast" id="toast"></div>
 <script src="shaders.js"></script>
 <script src="app.js"></script>
+<script src="motion-enhancements.js"></script>
 </body>
 </html>
