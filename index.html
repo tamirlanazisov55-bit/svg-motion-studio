@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SVG Motion Studio</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark"></span>SVG Motion Studio <span class="badge">prototype</span></div>
+    <div class="top-spacer"></div>
+    <button class="btn" id="replayBtn">↻ Replay intro</button>
+    <button class="btn primary" id="exportBtn">Export HTML</button>
+  </header>
+
+  <div class="mobile-warning">Лучше открывать сервис на десктопе: там удобнее выбирать слои и настраивать движение.</div>
+
+  <main class="workspace">
+    <aside class="sidebar">
+      <div class="side-head">
+        <div><div class="side-title">SVG / Layers</div><div class="side-sub">Выбери объект для анимации</div></div>
+      </div>
+      <div class="side-scroll">
+        <label class="upload" id="dropZone">
+          <input id="fileInput" type="file" accept="image/svg+xml,.svg" hidden>
+          <strong>Загрузить SVG</strong>
+          <span>Drop сюда или нажми. SVG очищается от script / foreignObject перед предпросмотром.</span>
+        </label>
+        <div id="layers" class="layers"></div>
+        <div id="emptyLayers" class="empty">После загрузки здесь появятся группы и фигуры: path, circle, rect, polygon и другие.</div>
+      </div>
+    </aside>
+
+    <section class="stage-wrap">
+      <div class="stage-toolbar">
+        <button class="seg active" data-bg="dark">Dark</button>
+        <button class="seg" data-bg="light">Light</button>
+        <button class="seg" data-bg="transparent">Alpha</button>
+      </div>
+      <div class="stage" id="stage">
+        <div class="preview-shell" id="preview"></div>
+      </div>
+      <div class="hint">Клик по фигуре в SVG тоже выбирает её слой</div>
+    </section>
+
+    <aside class="sidebar right">
+      <div class="tabs">
+        <button class="tab active" data-tab="ambient">1 · Surface</button>
+        <button class="tab" data-tab="reveal">2 · Reveal</button>
+        <button class="tab" data-tab="spark">3 · Spark</button>
+      </div>
+      <div class="settings" id="settingsPanel">
+        <div data-panel="ambient">
+          <div class="section">
+            <div class="section-title">Animated gradient <span class="switch on" id="gradientToggle"></span></div>
+            <div class="row stack">
+              <div class="label">Цвета</div>
+              <div class="colors">
+                <div class="color-box"><input type="color" id="c1" value="#d8ff3e"><input class="hex-input" id="c1Hex" value="#D8FF3E" maxlength="7" spellcheck="false"></div>
+                <div class="color-box"><input type="color" id="c2" value="#5af2ff"><input class="hex-input" id="c2Hex" value="#5AF2FF" maxlength="7" spellcheck="false"></div>
+                <div class="color-box"><input type="color" id="c3" value="#8b5cff"><input class="hex-input" id="c3Hex" value="#8B5CFF" maxlength="7" spellcheck="false"></div>
+              </div>
+            </div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Flow speed</span><span class="value" id="gradientSpeedV"></span></div><input type="range" id="gradientSpeed" min="1.5" max="14" step=".1" value="6"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Cloud softness</span><span class="value" id="softnessV"></span></div><input type="range" id="softness" min="0" max="6" step=".2" value="2.2"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Cloud contrast</span><span class="value" id="cloudV"></span></div><input type="range" id="cloud" min="0" max="1" step=".05" value=".45"></div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Contour glow <span class="switch on" id="glowToggle"></span></div>
+            <div class="row"><span class="label">Glow color</span><div class="color-box compact-color"><input type="color" id="glowColor" value="#ffffff"><input class="hex-input" id="glowColorHex" value="#FFFFFF" maxlength="7" spellcheck="false"></div></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Stroke width</span><span class="value" id="strokeWidthV"></span></div><input type="range" id="strokeWidth" min=".5" max="12" step=".5" value="3"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Blur radius</span><span class="value" id="glowBlurV"></span></div><input type="range" id="glowBlur" min="1" max="18" step=".5" value="7"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Highlight length</span><span class="value" id="dashV"></span></div><input type="range" id="dash" min="4" max="40" step="1" value="15"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Orbit speed</span><span class="value" id="glowSpeedV"></span></div><input type="range" id="glowSpeed" min="1" max="12" step=".1" value="3.8"></div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">WebGL shader layer <span class="switch" id="shaderToggle"></span></div>
+            <div class="row"><span class="label">Shader</span><select id="shaderMode"><option value="strands">Strands</option><option value="galaxy">Galaxy</option><option value="prismatic">Prismatic Burst</option><option value="siderays">Side Rays</option><option value="silk">Silk</option></select></div>
+            <button class="btn small" id="referencePresetBtn" style="width:100%;margin:-2px 0 8px">Reset to ReactBits reference</button>
+            <div class="row"><span class="label">Behavior</span><select id="shaderPlacement"><option value="ambient">Inside shape · loop</option><option value="reveal">Reveal only</option></select></div>
+            <div class="row stack">
+              <div class="label">Shader colors</div>
+              <div class="colors">
+                <div class="color-box"><input type="color" id="shaderC1" value="#ff4242"><input class="hex-input" id="shaderC1Hex" value="#FF4242" maxlength="7" spellcheck="false"></div>
+                <div class="color-box"><input type="color" id="shaderC2" value="#7c3aed"><input class="hex-input" id="shaderC2Hex" value="#7C3AED" maxlength="7" spellcheck="false"></div>
+                <div class="color-box"><input type="color" id="shaderC3" value="#06b6d4"><input class="hex-input" id="shaderC3Hex" value="#06B6D4" maxlength="7" spellcheck="false"></div>
+                <div class="color-box"><input type="color" id="shaderC4" value="#eab308"><input class="hex-input" id="shaderC4Hex" value="#EAB308" maxlength="7" spellcheck="false"></div>
+              </div>
+            </div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Speed</span><span class="value" id="shaderSpeedV"></span></div><input type="range" id="shaderSpeed" min=".1" max="3" step=".05" value="1"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Scale</span><span class="value" id="shaderScaleV"></span></div><input type="range" id="shaderScale" min=".45" max="3" step=".05" value="1"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Intensity</span><span class="value" id="shaderIntensityV"></span></div><input type="range" id="shaderIntensity" min=".1" max="2" step=".05" value="1"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Opacity</span><span class="value" id="shaderOpacityV"></span></div><input type="range" id="shaderOpacity" min=".05" max="1" step=".05" value="1"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Reveal FX duration</span><span class="value" id="shaderDurationV"></span></div><input type="range" id="shaderDuration" min=".4" max="3" step=".05" value="1.25"></div>
+            <div class="notice">Настоящий WebGL canvas маскируется выбранным SVG-слоем. Reveal only удобно использовать с Galaxy / Prismatic Burst: шейдер раскрывает силуэт, затем исчезает, а SVG остаётся в финальном состоянии.</div>
+          </div>
+        </div>
+
+        <div data-panel="reveal" hidden>
+          <div class="section">
+            <div class="section-title">Point → shape</div>
+            <div class="row"><span class="label">Reveal mode</span><select id="revealMode"><option value="clean">Clean scale</option><option value="elastic">Elastic scale</option><option value="fade">Scale + fade</option></select></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Duration</span><span class="value" id="revealDurationV"></span></div><input type="range" id="revealDuration" min=".25" max="3" step=".05" value="1.1"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Delay</span><span class="value" id="revealDelayV"></span></div><input type="range" id="revealDelay" min="0" max="2" step=".05" value=".15"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Elasticity</span><span class="value" id="elasticityV"></span></div><input type="range" id="elasticity" min="0" max="30" step="1" value="8"></div>
+            <div class="row"><span class="label">Origin</span><select id="origin"><option value="center">Center</option><option value="top">Top</option><option value="right">Right</option><option value="bottom">Bottom</option><option value="left">Left</option></select></div>
+          </div>
+          <div class="section"><div class="notice">В режиме <b>Clean scale</b> геометрия не искажается: фигура растёт равномерно из точки. Elasticity влияет только на Elastic scale и полностью возвращается в исходный SVG на 100%.</div></div>
+        </div>
+
+        <div data-panel="spark" hidden>
+          <div class="section">
+            <div class="section-title">Spark intro <span class="switch" id="sparkToggle"></span></div>
+            <div class="row"><span class="label">Pattern</span><select id="sparkPattern"><option value="burst">Burst</option><option value="clockwise">Clockwise cascade</option></select></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Rays</span><span class="value" id="raysV"></span></div><input type="range" id="rays" min="3" max="12" step="1" value="5"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Ray length</span><span class="value" id="rayLengthV"></span></div><input type="range" id="rayLength" min=".2" max="1.8" step=".05" value=".75"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Spark duration</span><span class="value" id="sparkDurationV"></span></div><input type="range" id="sparkDuration" min=".35" max="2.5" step=".05" value=".9"></div>
+            <div class="row stack"><div style="display:flex;justify-content:space-between"><span class="label">Cascade amount</span><span class="value" id="cascadeV"></span></div><input type="range" id="cascade" min="0" max=".18" step=".01" value=".07"></div>
+            <div class="row"><span class="label">Spark color</span><div class="color-box compact-color"><input type="color" id="sparkColor" value="#e9ff8f"><input class="hex-input" id="sparkColorHex" value="#E9FF8F" maxlength="7" spellcheck="false"></div></div>
+          </div>
+          <div class="section"><div class="notice">Spark строится вокруг выбранного слоя по его реальному bounding box. В Clockwise режиме лучи стартуют каскадом по часовой стрелке, после чего запускается появление самой фигуры.</div></div>
+        </div>
+      </div>
+      <div class="export-foot">
+        <button class="btn" id="viewCodeBtn">View exported HTML</button>
+        <button class="btn primary" id="exportBtn2">Generate animation.html</button>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal" id="codeModal">
+  <div class="modal-card">
+    <div class="modal-head"><div><div class="side-title">Exported HTML</div><div class="side-sub">Только сцена и настроенная анимация — без интерфейса сервиса</div></div><button class="btn small" id="closeModal">Close</button></div>
+    <textarea id="codeArea" spellcheck="false"></textarea>
+    <div class="modal-foot"><button class="btn" id="copyCodeBtn">Copy code</button><button class="btn primary" id="downloadCodeBtn">Download HTML</button></div>
+  </div>
+</div>
+
+<script src="shaders.js"></script>
+<script src="app.part1.js"></script>
+<script src="app.part2.js"></script>
+<script src="app.part3.js"></script>
+<script src="app.part4.js"></script>
+<script src="app.part5.js"></script>
+<script src="app-run.js"></script>
+</body>
+</html>
