@@ -11,6 +11,7 @@ const smsEasing=v=>SMS_EASINGS[v]||v||SMS_EASINGS.smooth;
 if(state.revealMode==null)state.revealMode='scale';
 if(state.revealEasing==null)state.revealEasing='smooth';
 if(state.revealRotationDegrees==null)state.revealRotationDegrees=220;
+if(state.revealStartOpacity==null)state.revealStartOpacity=0;
 if(state.glowStrokeThickness==null)state.glowStrokeThickness=1;
 if(state.introStartScale===.82)state.introStartScale=.18;
 
@@ -26,6 +27,16 @@ if(!$('#revealRotationDegrees')){
     const row=document.createElement('label');
     row.className='slider-row';row.id='revealRotationRow';row.hidden=true;
     row.innerHTML='<span>Spin amount</span><output id="revealRotationDegreesVal"></output><input id="revealRotationDegrees" type="range" min="0" max="1080" step="5" value="220">';
+    stack.appendChild(row);
+  }
+}
+if(!$('#revealStartOpacity')){
+  const startScale=$('#introStartScale');
+  const stack=startScale?.closest('.slider-stack');
+  if(stack){
+    const row=document.createElement('label');
+    row.className='slider-row';
+    row.innerHTML='<span>Start opacity</span><output id="revealStartOpacityVal"></output><input id="revealStartOpacity" type="range" min="0" max="100" step="1" value="0">';
     stack.appendChild(row);
   }
 }
@@ -45,17 +56,17 @@ buildGlowMarkup=function(){
 
 replayIntro=function(){
   const intro=$('#starIntro');if(!intro)return;
-  const duration=state.revealDuration*1000,delay=state.revealDelay*1000,easing=smsEasing(state.revealEasing),fromScale=Math.max(.04,Math.min(1,state.introStartScale||.18)),spin=Math.max(0,Math.min(1080,state.revealRotationDegrees??220));
+  const duration=state.revealDuration*1000,delay=state.revealDelay*1000,easing=smsEasing(state.revealEasing),fromScale=Math.max(.04,Math.min(1,state.introStartScale||.18)),spin=Math.max(0,Math.min(1080,state.revealRotationDegrees??220)),startOpacity=Math.max(0,Math.min(1,(state.revealStartOpacity??0)/100));
   intro.getAnimations().forEach(a=>a.cancel());
   if(state.revealMode==='clockwise'){
     intro.animate([
-      {transform:`scale(${fromScale}) rotate(${-spin}deg) translateZ(0)`,opacity:.08,filter:'blur(6px)'},
+      {transform:`scale(${fromScale}) rotate(${-spin}deg) translateZ(0)`,opacity:startOpacity,filter:'blur(6px)'},
       {transform:`scale(1.04) rotate(${Math.min(10,spin*.045)}deg) translateZ(0)`,opacity:1,filter:'blur(0px)',offset:.78},
       {transform:'scale(1) rotate(0deg) translateZ(0)',opacity:1,filter:'blur(0px)'}
     ],{duration,delay,easing,fill:'both'});
   }else{
     intro.animate([
-      {transform:`scale(${fromScale}) translateZ(0)`,opacity:0,filter:'blur(5px)'},
+      {transform:`scale(${fromScale}) translateZ(0)`,opacity:startOpacity,filter:'blur(5px)'},
       {transform:'scale(1.025) translateZ(0)',opacity:1,filter:'blur(0px)',offset:.72},
       {transform:'scale(1) translateZ(0)',opacity:1,filter:'blur(0px)'}
     ],{duration,delay,easing,fill:'both'});
@@ -75,11 +86,12 @@ updateStatus=function(){
 };
 
 function syncMotionEnhancements(){
-  const mode=$('#revealMode'),easing=$('#revealEasing'),rotation=$('#revealRotationDegrees'),rotationRow=$('#revealRotationRow'),thickness=$('#glowStrokeThickness'),start=$('#introStartScale');
+  const mode=$('#revealMode'),easing=$('#revealEasing'),rotation=$('#revealRotationDegrees'),rotationRow=$('#revealRotationRow'),startOpacity=$('#revealStartOpacity'),thickness=$('#glowStrokeThickness'),start=$('#introStartScale');
   if(mode)mode.value=state.revealMode||'scale';
   if(easing)easing.value=state.revealEasing||'smooth';
   if(rotation){rotation.value=state.revealRotationDegrees??220;updateOutput('revealRotationDegrees',state.revealRotationDegrees??220,'°')}
   if(rotationRow)rotationRow.hidden=state.revealMode!=='clockwise';
+  if(startOpacity){startOpacity.value=state.revealStartOpacity??0;updateOutput('revealStartOpacity',state.revealStartOpacity??0,'%')}
   if(thickness){thickness.value=state.glowStrokeThickness||1;updateOutput('glowStrokeThickness',state.glowStrokeThickness||1)}
   if(start){start.min='.04';start.value=state.introStartScale;updateOutput('introStartScale',state.introStartScale)}
   updateStatus();
@@ -91,6 +103,7 @@ syncUi=function(){smsOldSyncUi();syncMotionEnhancements()};
 $('#revealMode')?.addEventListener('change',e=>{state.revealMode=e.target.value;syncMotionEnhancements();replayIntro()});
 $('#revealEasing')?.addEventListener('change',e=>{state.revealEasing=e.target.value;syncMotionEnhancements();replayIntro()});
 $('#revealRotationDegrees')?.addEventListener('input',e=>{state.revealRotationDegrees=parseFloat(e.target.value);updateOutput('revealRotationDegrees',state.revealRotationDegrees,'°');updateStatus();replayIntro()});
+$('#revealStartOpacity')?.addEventListener('input',e=>{state.revealStartOpacity=parseFloat(e.target.value);updateOutput('revealStartOpacity',state.revealStartOpacity,'%');replayIntro()});
 $('#glowStrokeThickness')?.addEventListener('input',e=>{state.glowStrokeThickness=parseFloat(e.target.value);updateOutput('glowStrokeThickness',state.glowStrokeThickness);scheduleRender()});
 
 function rebindReplay(id){
@@ -106,6 +119,7 @@ applyPreset=function(p){
   if(state.revealMode==null)state.revealMode='scale';
   if(state.revealEasing==null)state.revealEasing='smooth';
   if(state.revealRotationDegrees==null)state.revealRotationDegrees=220;
+  if(state.revealStartOpacity==null)state.revealStartOpacity=0;
   if(state.glowStrokeThickness==null)state.glowStrokeThickness=1;
   syncMotionEnhancements();
 };
@@ -122,7 +136,7 @@ buildStandaloneHtml=function(){
 <script>
 const SMS_EASINGS={smooth:'cubic-bezier(.16,.84,.18,1)',easeout:'cubic-bezier(.22,1,.36,1)',snappy:'cubic-bezier(.34,1.56,.64,1)',linear:'linear',quint:'cubic-bezier(0.83,0,0.17,1)'};
 const smsEasing=v=>SMS_EASINGS[v]||v||SMS_EASINGS.smooth;
-replayAnimation=function(){const intro=document.getElementById('starIntro');if(!intro)return;const duration=PRESET.revealDuration*1000,delay=PRESET.revealDelay*1000,easing=smsEasing(PRESET.revealEasing),fromScale=Math.max(.04,Math.min(1,PRESET.introStartScale||.18)),spin=Math.max(0,Math.min(1080,PRESET.revealRotationDegrees??220));intro.getAnimations().forEach(a=>a.cancel());if(PRESET.revealMode==='clockwise'){intro.animate([{transform:'scale('+fromScale+') rotate('+(-spin)+'deg) translateZ(0)',opacity:.08,filter:'blur(6px)'},{transform:'scale(1.04) rotate('+Math.min(10,spin*.045)+'deg) translateZ(0)',opacity:1,filter:'blur(0px)',offset:.78},{transform:'scale(1) rotate(0deg) translateZ(0)',opacity:1,filter:'blur(0px)'}],{duration,delay,easing,fill:'both'})}else{intro.animate([{transform:'scale('+fromScale+') translateZ(0)',opacity:0,filter:'blur(5px)'},{transform:'scale(1.025) translateZ(0)',opacity:1,filter:'blur(0px)',offset:.72},{transform:'scale(1) translateZ(0)',opacity:1,filter:'blur(0px)'}],{duration,delay,easing,fill:'both'})}};
+replayAnimation=function(){const intro=document.getElementById('starIntro');if(!intro)return;const duration=PRESET.revealDuration*1000,delay=PRESET.revealDelay*1000,easing=smsEasing(PRESET.revealEasing),fromScale=Math.max(.04,Math.min(1,PRESET.introStartScale||.18)),spin=Math.max(0,Math.min(1080,PRESET.revealRotationDegrees??220)),startOpacity=Math.max(0,Math.min(1,(PRESET.revealStartOpacity??0)/100));intro.getAnimations().forEach(a=>a.cancel());if(PRESET.revealMode==='clockwise'){intro.animate([{transform:'scale('+fromScale+') rotate('+(-spin)+'deg) translateZ(0)',opacity:startOpacity,filter:'blur(6px)'},{transform:'scale(1.04) rotate('+Math.min(10,spin*.045)+'deg) translateZ(0)',opacity:1,filter:'blur(0px)',offset:.78},{transform:'scale(1) rotate(0deg) translateZ(0)',opacity:1,filter:'blur(0px)'}],{duration,delay,easing,fill:'both'})}else{intro.animate([{transform:'scale('+fromScale+') translateZ(0)',opacity:startOpacity,filter:'blur(5px)'},{transform:'scale(1.025) translateZ(0)',opacity:1,filter:'blur(0px)',offset:.72},{transform:'scale(1) translateZ(0)',opacity:1,filter:'blur(0px)'}],{duration,delay,easing,fill:'both'})}};
 const w=PRESET.glowStrokeThickness||1;document.querySelectorAll('#borderGlowStar path').forEach(p=>{const sw=parseFloat(p.getAttribute('stroke-width'));if(Number.isFinite(sw))p.setAttribute('stroke-width',String(sw*w))});
 requestAnimationFrame(replayAnimation);
 <\/script>`;
