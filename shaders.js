@@ -1,11 +1,220 @@
-// minimal shader bundle
+/*
+  Shader runtime for Star Shader Lab.
+  GradFlow family is an original WebGL2 reimplementation inspired by the MIT-licensed GradFlow project.
+  Chromatic Shadow is an original silhouette-lighting shader inspired by the VFX-JS CodePen reference supplied by the user.
+*/
+const VERT300=`#version 300 es
+in vec2 aPosition;
+out vec2 vUv;
+void main(){vUv=aPosition*.5+.5;gl_Position=vec4(aPosition,0.,1.);}`;
+
+const COMMON=`
+precision highp float;
+in vec2 vUv;
+out vec4 fragColor;
+uniform float uTime;
+uniform vec2 uResolution;
+uniform vec3 uColors[4];
+uniform float uSpeed;
+uniform float uScale;
+uniform float uIntensity;
+uniform vec2 uMouse;
+uniform float uMouseActive;
+uniform int uGradType;
+uniform float uNoise;
+const float PI=3.14159265359;
+float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+float valueNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);float a=hash21(i),b=hash21(i+vec2(1,0)),c=hash21(i+vec2(0,1)),d=hash21(i+vec2(1,1));return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);}
+float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*valueNoise(p);p=p*2.03+vec2(17.1,9.2);a*=.5;}return v;}
+vec3 palette(float t){t=fract(t)*3.;if(t<1.)return mix(uColors[0],uColors[1],t);if(t<2.)return mix(uColors[1],uColors[2],t-1.);return mix(uColors[2],uColors[3],t-2.);}
+`;
+
+const FRAG_STRANDS=`#version 300 es
+${COMMON}
+void main(){
+  vec2 uv=(gl_FragCoord.xy-.5*uResolution)/uResolution.y/max(uScale,.001);
+  float env=pow(max(cos(uv.x*PI*1.22),0.),2.7);
+  vec3 col=vec3(0.);
+  float tt=uTime*uSpeed;
+  for(int i=0;i<5;i++){
+    float fi=float(i);
+    float y=(sin(uv.x*(2.2+fi*.37)+tt*(1.1+fi*.42)+fi*1.7)*.62+sin(uv.x*(4.1+fi*.23)-tt*(.7+fi*.2))* .38)*(.11+.015*fi)*env;
+    float d=abs(uv.y-y);
+    float thick=.008+.015*uIntensity;
+    float glow=thick/(d+thick*.55); glow*=glow;
+    col+=palette(fi*.18+uv.x*.25+tt*.025)*glow*env;
+  }
+  col=1.-exp(-col*(1.4+uIntensity*1.9));
+  float a=clamp(max(max(col.r,col.g),col.b),0.,1.);
+  fragColor=vec4(col,a);
+}`;
+
+const FRAG_GALAXY=`#version 300 es
+${COMMON}
+float star(vec2 p,float seed){
+  vec2 q=fract(p)-.5;
+  float d=length(q);
+  float s=smoothstep(.08,.005,d);
+  float flare=(smoothstep(.98,.86,abs(q.x*45.))*smoothstep(.98,.86,abs(q.y*3.))+smoothstep(.98,.86,abs(q.y*45.))*smoothstep(.98,.86,abs(q.x*3.)))*.08;
+  return (s+flare)*(.45+.85*hash21(floor(p)+seed));
+}
+void main(){
+  vec2 uv=(vUv-.5)*vec2(uResolution.x/uResolution.y,1.);
+  float t=uTime*uSpeed*.18;
+  float rot=t*.35;mat2 r=mat2(cos(rot),-sin(rot),sin(rot),cos(rot));uv=r*uv;
+  vec3 col=vec3(0.);
+  for(int layer=0;layer<4;layer++){
+    float l=float(layer);float z=fract(l*.247+t*.09);float scale=mix(18.,3.,z)*uScale;
+    vec2 p=uv*scale+l*vec2(13.7,7.3);
+    vec2 cell=floor(p);
+    float sd=hash21(cell+l);
+    vec2 drift=vec2(sin(t*7.+sd*9.),cos(t*5.+sd*8.))*.14;
+    float s=star(p+drift,sd)*smoothstep(1.,.05,z);
+    col+=palette(sd+.1*l)*s*(.6+uIntensity*.75);
+  }
+  float a=clamp(max(max(col.r,col.g),col.b),0.,1.);
+  fragColor=vec4(col,a);
+}`;
+
+const FRAG_PRISMATIC=`#version 300 es
+${COMMON}
+void main(){
+  vec2 uv=(vUv-.5)*vec2(uResolution.x/uResolution.y,1.);
+  float t=uTime*uSpeed*.5;
+  float r=length(uv);
+  float a=atan(uv.y,uv.x);
+  float rays=pow(max(0.,.5+.5*sin(a*9.+sin(a*3.-t)*2.+t*1.4)),4.);
+  float swirl=fract(r*(5.5/uScale)-t*.22+a/PI*.27);
+  vec3 col=palette(swirl*1.15+a/PI*.18+t*.04);
+  float core=smoothstep(.78,.02,r);
+  float bands=.38+.9*pow(max(0.,sin((r*12.-t*1.6)+a*2.)),2.);
+  col*=core*(.22+rays*1.45+bands*.5)*(1.1*uIntensity);
+  col+=palette(a/6.283+t*.05)*rays*core*.7;
+  float alpha=clamp(max(max(col.r,col.g),col.b),0.,1.);
+  fragColor=vec4(col,alpha);
+}`;
+
+const FRAG_SIDERAYS=`#version 300 es
+${COMMON}
+float beam(vec2 p,vec2 dir,float width,float phase){float perp=abs(p.x*dir.y-p.y*dir.x);float along=dot(p,dir);return exp(-perp*perp/width)*smoothstep(-.45,.9,along)*(.65+.35*sin(along*9.-uTime*uSpeed*2.+phase));}
+void main(){
+  vec2 p=(vUv-.5)*vec2(uResolution.x/uResolution.y,1.);
+  p/=max(uScale,.001);
+  vec2 src=vec2(-.72,.64);
+  vec2 q=p-src;
+  vec2 d1=normalize(vec2(.86,-.5)),d2=normalize(vec2(.7,-.72)),d3=normalize(vec2(.97,-.24));
+  float b1=beam(q,d1,.006,0.),b2=beam(q,d2,.014,1.7),b3=beam(q,d3,.009,3.1);
+  vec3 col=uColors[0]*b1+uColors[1]*b2+uColors[2]*b3;
+  float fall=1./(1.+length(q)*1.35);col*=fall*(1.2+uIntensity*1.5);
+  float a=clamp(max(max(col.r,col.g),col.b),0.,1.);
+  fragColor=vec4(col,a);
+}`;
+
+const FRAG_SILK=`#version 300 es
+${COMMON}
+void main(){
+  vec2 uv=(vUv-.5)*uScale;
+  float t=uTime*uSpeed;
+  uv.y+=.06*sin(uv.x*8.-t*.8);
+  float f=sin((uv.x+uv.y)*7.+sin(uv.x*10.+t*.5)*1.6+cos(uv.y*8.-t*.35)*1.2);
+  float f2=sin(uv.x*4.-uv.y*9.+t*.4);
+  float m=.5+.5*f*.7+.15*f2;
+  vec3 c1=m<.5?mix(uColors[0],uColors[1],m*2.):mix(uColors[1],uColors[2],(m-.5)*2.);
+  float sheen=pow(max(0.,.5+.5*sin((uv.x-uv.y)*13.+t*.25)),5.);
+  vec3 col=c1+uColors[3]*sheen*.32;
+  col*=.65+uIntensity*.55;
+  float grain=(hash21(gl_FragCoord.xy+uTime)-.5)*.035*uNoise;
+  fragColor=vec4(clamp(col+grain,0.,1.),1.);
+}`;
+
+const FRAG_GRADFLOW=`#version 300 es
+${COMMON}
+vec3 triMix(float t){t=clamp(t,0.,1.);return t<.5?mix(uColors[0],uColors[1],t*2.):mix(uColors[1],uColors[2],(t-.5)*2.);}
+vec3 gradLinear(vec2 uv,float t){float k=uv.y+.1*sin(uv.x*PI*2.+t);return triMix(k);}
+vec3 gradConic(vec2 uv,float t){vec2 p=uv-.5;float a=atan(p.y,p.x)/6.2831853+.5;float k=fract(a*uScale+t*.08);return palette(k*.92);}
+vec3 gradAnimated(vec2 uv,float t){vec2 p=uv-.5;float ang=(fbm(vec2(t*.08,p.x*p.y*3.))-.5)*6.0;mat2 r=mat2(cos(ang),-sin(ang),sin(ang),cos(ang));p=r*p;float f=sin((p.x+p.y)*9.*uScale+t*1.4)*.08;return triMix(clamp(.5+p.x*1.1+p.y*.72+f,0.,1.));}
+vec3 gradWave(vec2 uv,float t){float k=uv.y+.09*sin(uv.x*PI*2.*uScale+t*.8)+.12*sin(uv.x*PI*uScale-t*.45)+.06*sin(uv.x*PI*4.*uScale+t*.35);return triMix(clamp(k,0.,1.));}
+vec3 gradSilk(vec2 uv,float t){vec2 p=(uv-.5)*uScale;float a=0.,d=-t*.35;for(int i=0;i<7;i++){float fi=float(i);a+=cos(fi-d-a*p.x)*.24;d+=sin(p.y*fi+a)*.22;}float x=.5+.5*cos(p.x*d+a),y=.5+.5*cos(p.y*a+d),z=.5+.5*cos((p.x+p.y)*(d+a)*.5);vec3 c=mix(mix(uColors[0],uColors[1],x),mix(uColors[1],uColors[2],y),z);return mix(c,c*(.55+.45*z),.35);}
+vec3 gradSmoke(vec2 uv,float t){vec2 p=(uv-.5)*2.*uScale;for(int i=1;i<8;i++){float fi=float(i);p.x+=.45/fi*sin(fi*p.y+t+.31*fi);p.y+=.45/fi*sin(fi*p.x+t*.83+.27*(fi+8.));}float a=.5+.5*sin(p.y),b=.5+.5*sin(p.x+p.y);return mix(mix(uColors[0],uColors[1],a),uColors[2],b);}
+vec3 gradStripe(vec2 uv,float t){vec2 p=(uv-.5)*2.*uScale;float a=4.*p.y-sin(-p.x*3.+p.y-t*.7);float s=smoothstep(-.25,.7,cos(a-4.*p.y)-sin(a+3.*p.x));vec2 w=(cos(a)*p+sin(a)*vec2(-p.y,p.x))*.28+.5;vec3 c=mix(uColors[0],uColors[1],clamp(w.x,0.,1.));c=mix(c,uColors[2],clamp(w.y,0.,1.));return c*(.78+.45*s);}
+vec3 gradMesh(vec2 uv,float t){float ratio=uResolution.x/uResolution.y;vec2 p=vec2(uv.x*ratio,uv.y);float tt=t*.4;vec2 c1=vec2((.28+.25*sin(tt*.9))*ratio,.42+.29*cos(tt*.7)),c2=vec2((.72+.22*cos(tt*.8))*ratio,.58+.28*sin(tt*1.1)),c3=vec2((.5+.29*sin(tt*.6+2.))*ratio,.5+.32*cos(tt*.9+4.));float fall=1.6+uScale*2.1;float w1=exp(-fall*dot(p-c1,p-c1)),w2=exp(-fall*dot(p-c2,p-c2)),w3=exp(-fall*dot(p-c3,p-c3)),wb=.08;vec3 base=mix(uColors[0],uColors[2],uv.y);return (uColors[0]*w1+uColors[1]*w2+uColors[2]*w3+base*wb)/(w1+w2+w3+wb);}
+vec3 gradAurora(vec2 uv,float t){float tt=t*.28;float curve=fbm(vec2(uv.x*2.2*uScale+tt*.5,tt*.3))-.5;float y=uv.y+curve*.5;float band=smoothstep(.12,.5,y)*smoothstep(1.08,.57,y);float shimmer=fbm(vec2(uv.x*5.*uScale-tt*.8,y*3.+tt*.5));float inten=band*(.45+.95*shimmer);vec3 sky=mix(uColors[1],uColors[1]*.28,uv.y);vec3 curtain=mix(uColors[0],uColors[2],clamp(y+(shimmer-.5)*.6,0.,1.));return sky+curtain*inten;}
+void main(){
+  vec2 uv=vUv;float t=uTime*uSpeed;vec3 col;
+  if(uGradType==0)col=gradLinear(uv,t);else if(uGradType==1)col=gradConic(uv,t);else if(uGradType==2)col=gradAnimated(uv,t);else if(uGradType==3)col=gradWave(uv,t);else if(uGradType==4)col=gradSilk(uv,t);else if(uGradType==5)col=gradSmoke(uv,t);else if(uGradType==6)col=gradStripe(uv,t);else if(uGradType==7)col=gradMesh(uv,t);else col=gradAurora(uv,t);
+  if(uNoise>.001){float g=hash21(uv*vec2(233.,197.)+t*.03);col*=1.-uNoise*.32+g*uNoise*.32;}
+  col*=.7+uIntensity*.45;
+  fragColor=vec4(clamp(col,0.,1.),1.);
+}`;
+
+const FRAG_SHADOW=`#version 300 es
+precision highp float;
+in vec2 vUv;
+out vec4 fragColor;
+uniform sampler2D uShape;
+uniform vec2 uResolution;
+uniform vec2 uLight;
+uniform vec4 uShapeRect;
+uniform vec3 uColors[4];
+uniform float uIntensity;
+uniform float uReach;
+uniform float uJitter;
+uniform float uTime;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
+float shapeAt(vec2 uv){vec2 q=(uv-uShapeRect.xy)/uShapeRect.zw;if(q.x<0.||q.x>1.||q.y<0.||q.y>1.)return 0.;return texture(uShape,q).r;}
+vec3 pal(float t){t=fract(t)*3.;if(t<1.)return mix(uColors[0],uColors[1],t);if(t<2.)return mix(uColors[1],uColors[2],t-1.);return mix(uColors[2],uColors[3],t-2.);}
+void main(){
+  vec2 uv=vUv;if(shapeAt(uv)>.18){discard;}
+  vec2 asp=vec2(uResolution.x/uResolution.y,1.);vec2 p=(uv-.5)*asp;vec2 lp=(uLight-.5)*asp;
+  vec2 ray=(lp-p)/52.;float occ=0.;vec2 q=uv;
+  for(int i=0;i<52;i++){
+    float fi=float(i);vec2 j=vec2(hash(gl_FragCoord.xy+fi+uTime),hash(gl_FragCoord.yx-fi-uTime))-.5;
+    q+=ray/asp*uReach+j*(.0012*uJitter);
+    occ+=shapeAt(q)/52.;
+  }
+  float d=length(p-lp);float fall=exp(-d*1.35);float edge=smoothstep(.015,.22,occ);float body=pow(occ,.72);
+  float chroma=fract(body*2.8+d*.7+atan(p.y-lp.y,p.x-lp.x)/6.2831853+.5);
+  vec3 rainbow=pal(chroma);
+  vec3 white=vec3(.95,.97,1.);
+  vec3 col=mix(white,rainbow,.78)*body*fall*(1.8*uIntensity);
+  col-=vec3(body*body*.18);
+  float grain=(hash(gl_FragCoord.xy+uTime*41.)-.5)*.025*uJitter;col+=grain;
+  float alpha=clamp(edge*fall*(.42+body)*uIntensity,0.,1.);
+  fragColor=vec4(max(col,0.),alpha);
+}`;
+
+const GRAD_TYPES={linear:0,conic:1,animated:2,wave:3,silk:4,smoke:5,stripe:6,mesh:7,aurora:8};
+
 function hexRgb(hex){const h=(hex||'#fff').replace('#','');const x=h.length===3?[...h].map(c=>c+c).join(''):h;const n=parseInt(x.slice(0,6),16);return [((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255]}
-function makeGradientTexture(gl,colors){const W=256,data=new Uint8Array(W*4),cols=colors.map(hexRgb);for(let i=0;i<W;i++){const t=i/(W-1),s=t*(cols.length-1),a=Math.floor(s),b=Math.min(cols.length-1,a+1),f=s-a;for(let k=0;k<3;k++)data[i*4+k]=Math.round((cols[a][k]*(1-f)+cols[b][k]*f)*255);data[i*4+3]=255;}const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,W,1,0,gl.RGBA,gl.UNSIGNED_BYTE,data);return tex}
 function compileGL(gl,type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){const msg=gl.getShaderInfoLog(sh);gl.deleteShader(sh);throw new Error(msg||'Shader compile failed')}return sh}
-const VERT300=`#version 300 es\nin vec2 aPosition;out vec2 vUv;void main(){vUv=aPosition*.5+.5;gl_Position=vec4(aPosition,0.,1.);}`;
-const FRAG_STRANDS=`#version 300 es\nprecision highp float;uniform float uTime;uniform vec2 uResolution;uniform vec3 uColors[8];uniform int uColorCount;uniform int uStrandCount;uniform float uSpeed;uniform float uAmplitude;uniform float uWaviness;uniform float uThickness;uniform float uGlow;uniform float uTaper;uniform float uSpread;uniform float uHueShift;uniform float uIntensity;uniform float uScale;uniform float uSaturation;out vec4 fragColor;const float PI=3.14159265;vec3 spectrum(float t){return .5+.5*cos(2.*PI*(t+vec3(0.,.33,.67)));}vec3 samplePalette(float t){t=fract(t);float scaled=t*float(uColorCount);int idx=int(floor(scaled));float blend=fract(scaled);int nextIdx=idx+1;if(nextIdx>=uColorCount)nextIdx=0;return mix(uColors[idx],uColors[nextIdx],blend);}vec3 strandColor(float t){if(uColorCount>0)return samplePalette(t);return spectrum(t);}void main(){vec2 uv=(gl_FragCoord.xy-.5*uResolution)/uResolution.y;uv/=max(uScale,.0001);float e=.06+uIntensity*.94;float env=pow(max(cos(uv.x*PI*1.3),0.),uTaper);vec3 col=vec3(0.);for(int i=0;i<12;i++){if(i>=uStrandCount)break;float fi=float(i);float ph=fi*1.7*uSpread;float freq=(2.+fi*.35)*uWaviness;float spd=1.4+fi*1.2;float tt=uTime*uSpeed;float w=sin(uv.x*freq+tt*spd+ph)*.60+sin(uv.x*freq*1.1-tt*spd*.7+ph*1.7)*.40;float amp=(.1+.02*e)*env*uAmplitude;float y=w*amp;float d=abs(uv.y-y);float thick=(.001+.05*e)*(.35+env)*uThickness;float g=thick/(d+thick*.45);g*=g;float h=fi/float(uStrandCount)+uv.x*.30+uTime*.04+uHueShift;col+=strandColor(h)*g*env;}col*=.45+.7*e;col=1.-exp(-col*uGlow);float gray=dot(col,vec3(.2126,.7152,.0722));col=max(mix(vec3(gray),col,uSaturation),0.);float lum=max(max(col.r,col.g),col.b);float alpha=clamp(lum,0.,1.);fragColor=vec4(col,alpha);}`;
-const FRAG_GALAXY=`#version 300 es\nprecision highp float;uniform float uTime;uniform vec3 uResolution;uniform vec2 uFocal;uniform vec2 uRotation;uniform float uStarSpeed;uniform float uDensity;uniform float uHueShift;uniform float uSpeed;uniform vec2 uMouse;uniform float uGlowIntensity;uniform float uSaturation;uniform bool uMouseRepulsion;uniform float uTwinkleIntensity;uniform float uRotationSpeed;uniform float uRepulsionStrength;uniform float uMouseActiveFactor;uniform float uAutoCenterRepulsion;uniform vec3 uColors[4];uniform int uColorCount;uniform vec3 uTint;in vec2 vUv;out vec4 fragColor;#define NUM_LAYER 4.0\n#define STAR_COLOR_CUTOFF 0.2\n#define MAT45 mat2(0.7071,-0.7071,0.7071,0.7071)\n#define PERIOD 3.0\nfloat Hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}float tri(float x){return abs(fract(x)*2.-1.);}float tris(float x){float t=fract(x);return 1.-smoothstep(0.,1.,abs(2.*t-1.));}float trisn(float x){float t=fract(x);return 2.*(1.-smoothstep(0.,1.,abs(2.*t-1.)))-1.;}vec3 sampleGalaxyPalette(float t){if(uColorCount<=0)return vec3(1.);t=fract(t)*float(uColorCount);int i=int(floor(t));float f=fract(t);int j=i+1;if(j>=uColorCount)j=0;return mix(uColors[i],uColors[j],f);}float Star(vec2 uv,float flare){float d=length(uv);float m=(.05*uGlowIntensity)/max(d,.0001);float rays=smoothstep(0.,1.,1.-abs(uv.x*uv.y*1000.));m+=rays*flare*uGlowIntensity;uv*=MAT45;rays=smoothstep(0.,1.,1.-abs(uv.x*uv.y*1000.));m+=rays*.3*flare*uGlowIntensity;m*=smoothstep(1.,.2,d);return m;}vec3 StarLayer(vec2 uv){vec3 col=vec3(0.);vec2 gv=fract(uv)-.5;vec2 id=floor(uv);for(int y=-1;y<=1;y++){for(int x=-1;x<=1;x++){vec2 offset=vec2(float(x),float(y));vec2 si=id+offset;float seed=Hash21(si);float size=fract(seed*345.32);float glossLocal=tri(uStarSpeed/(PERIOD*seed+1.));float flareSize=smoothstep(.9,1.,size)*glossLocal;vec3 base=uColorCount>0?sampleGalaxyPalette(seed*.73+size*.31):vec3(1.);vec2 pad=vec2(tris(seed*34.+uTime*uSpeed/10.),tris(seed*38.+uTime*uSpeed/30.))-.5;float star=Star(gv-offset-pad,flareSize);float twinkle=trisn(uTime*uSpeed+seed*6.2831)*.5+1.;twinkle=mix(1.,twinkle,uTwinkleIntensity);star*=twinkle;col+=star*size*base;}}return col;}void main(){vec2 focalPx=uFocal*uResolution.xy;vec2 uv=(vUv*uResolution.xy-focalPx)/uResolution.y;vec2 mouseNorm=uMouse-vec2(.5);if(uAutoCenterRepulsion>0.){vec2 centerUV=vec2(0.);float centerDist=length(uv-centerUV);vec2 repulsion=normalize(uv-centerUV)*(uAutoCenterRepulsion/(centerDist+.1));uv+=repulsion*.05;}else if(uMouseRepulsion){vec2 mousePosUV=(uMouse*uResolution.xy-focalPx)/uResolution.y;float mouseDist=length(uv-mousePosUV);vec2 repulsion=normalize(uv-mousePosUV)*(uRepulsionStrength/(mouseDist+.1));uv+=repulsion*.05*uMouseActiveFactor;}else{uv+=mouseNorm*.1*uMouseActiveFactor;}float autoRotAngle=uTime*uRotationSpeed;mat2 autoRot=mat2(cos(autoRotAngle),-sin(autoRotAngle),sin(autoRotAngle),cos(autoRotAngle));uv=autoRot*uv;uv=mat2(uRotation.x,-uRotation.y,uRotation.y,uRotation.x)*uv;vec3 col=vec3(0.);for(float i=0.;i<1.;i+=1./NUM_LAYER){float depth=fract(i+uStarSpeed*uSpeed);float scale=mix(20.*uDensity,.5*uDensity,depth);float fade=depth*smoothstep(1.,.9,depth);col+=StarLayer(uv*scale+i*453.32)*fade;}float alpha=length(col);alpha=smoothstep(0.,.3,alpha);alpha=min(alpha,1.);fragColor=vec4(col*uTint,alpha);}`;
-const FRAG_PRISMATIC=`#version 300 es\nprecision highp float;precision highp int;out vec4 fragColor;uniform vec2 uResolution;uniform float uTime;uniform float uIntensity;uniform float uSpeed;uniform int uAnimType;uniform vec2 uMouse;uniform int uColorCount;uniform float uDistort;uniform vec2 uOffset;uniform sampler2D uGradient;uniform float uNoiseAmount;uniform int uRayCount;float hash21(vec2 p){p=floor(p);float f=52.9829189*fract(dot(p,vec2(.065,.005)));return fract(f);}mat2 rot30(){return mat2(.8,-.5,.5,.8);}float layeredNoise(vec2 fragPx){vec2 p=mod(fragPx+vec2(uTime*30.,-uTime*21.),1024.);vec2 q=rot30()*p;float n=0.;n+=.40*hash21(q);n+=.25*hash21(q*2.+17.);n+=.20*hash21(q*4.+47.);n+=.10*hash21(q*8.+113.);n+=.05*hash21(q*16.+191.);return n;}vec3 rayDir(vec2 frag,vec2 res,vec2 offset,float dist){float focal=res.y*max(dist,1e-3);return normalize(vec3(2.*(frag-offset)-res,focal));}float edgeFade(vec2 frag,vec2 res,vec2 offset){vec2 toC=frag-.5*res-offset;float r=length(toC)/(.5*min(res.x,res.y));float x=clamp(r,0.,1.);float q=x*x*x*(x*(x*6.-15.)+10.);float s=q*.5;s=pow(s,1.5);float tail=1.-pow(1.-s,2.);s=mix(s,tail,.2);float dn=(layeredNoise(frag*.15)-.5)*.0015*s;return clamp(s+dn,0.,1.);}mat3 rotX(float a){float c=cos(a),s=sin(a);return mat3(1.,0.,0.,0.,c,-s,0.,s,c);}mat3 rotY(float a){float c=cos(a),s=sin(a);return mat3(c,0.,s,0.,1.,0.,-s,0.,c);}mat3 rotZ(float a){float c=cos(a),s=sin(a);return mat3(c,-s,0.,s,c,0.,0.,0.,1.);}vec3 sampleGradient(float t){t=clamp(t,0.,1.);return texture(uGradient,vec2(t,.5)).rgb;}vec2 rot2(vec2 v,float a){float s=sin(a),c=cos(a);return mat2(c,-s,s,c)*v;}float bendAngle(vec3 q,float t){return .8*sin(q.x*.55+t*.6)+.7*sin(q.y*.50-t*.5)+.6*sin(q.z*.60+t*.7);}void main(){vec2 frag=gl_FragCoord.xy;float t=uTime*uSpeed;float jitterAmp=.1*clamp(uNoiseAmount,0.,1.);vec3 dir=rayDir(frag,uResolution,uOffset,1.);float marchT=0.;vec3 col=vec3(0.);float n=layeredNoise(frag);vec4 c=cos(t*.2+vec4(0.,33.,11.,0.));mat2 M2=mat2(c.x,c.y,c.z,c.w);float amp=clamp(uDistort,0.,50.)*.15;mat3 rot3dMat=mat3(1.);vec3 ang=vec3(t*.31,t*.21,t*.17);rot3dMat=rotZ(ang.z)*rotY(ang.y)*rotX(ang.x);for(int i=0;i<44;++i){vec3 P=marchT*dir;P.z-=2.;float rad=length(P);vec3 Pl=P*(10./max(rad,1e-6));Pl=rot3dMat*Pl;float stepLen=min(rad-.3,n*jitterAmp)+.1;float grow=smoothstep(.35,3.,marchT);float a1=amp*grow*bendAngle(Pl*.6,t);float a2=.5*amp*grow*bendAngle(Pl.zyx*.5+3.1,t*.9);vec3 Pb=Pl;Pb.xz=rot2(Pb.xz,a1);Pb.xy=rot2(Pb.xy,a2);float rayPattern=smoothstep(.5,.7,sin(Pb.x+cos(Pb.y)*cos(Pb.z))*sin(Pb.z+sin(Pb.y)*cos(Pb.x+t)));vec3 userGradient=2.*sampleGradient(fract(marchT*.25));vec3 base=(.05/(.4+stepLen))*smoothstep(5.,0.,rad)*userGradient;col+=base*rayPattern;marchT+=stepLen;}col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col,0.,1.),1.);}`;
-const FRAG_SIDERAYS=`#version 300 es\nprecision highp float;uniform float iTime;uniform vec2 iResolution;uniform float iSpeed;uniform vec3 iRayColor1;uniform vec3 iRayColor2;uniform float iIntensity;uniform float iSpread;uniform float iFlipX;uniform float iFlipY;uniform float iTilt;uniform float iSaturation;uniform float iBlend;uniform float iFalloff;out vec4 fragColor;float rayStrength(vec2 raySource,vec2 rayRefDirection,vec2 coord,float seedA,float seedB,float speed){vec2 sourceToCoord=coord-raySource;float cosAngle=dot(normalize(sourceToCoord),rayRefDirection);return clamp((.45+.15*sin(cosAngle*seedA+iTime*speed))+(.3+.2*cos(-cosAngle*seedB+iTime*speed)),0.,1.)*clamp((iResolution.x-length(sourceToCoord))/iResolution.x,.5,1.);}void main(){vec2 fragCoord=gl_FragCoord.xy;if(iFlipX>.5)fragCoord.x=iResolution.x-fragCoord.x;if(iFlipY>.5)fragCoord.y=iResolution.y-fragCoord.y;vec2 coord=vec2(fragCoord.x,iResolution.y-fragCoord.y);vec2 rayPos=vec2(iResolution.x*1.1,-.5*iResolution.y);float tiltRad=iTilt*3.14159265/180.;float cs=cos(tiltRad),sn=sin(tiltRad);vec2 rel=coord-rayPos;vec2 tiltedCoord=vec2(rel.x*cs-rel.y*sn,rel.x*sn+rel.y*cs)+rayPos;float halfSpread=iSpread*.275;vec2 rayRefDir1=normalize(vec2(cos(.785398+halfSpread),sin(.785398+halfSpread)));vec2 rayRefDir2=normalize(vec2(cos(.785398-halfSpread),sin(.785398-halfSpread)));vec4 rays1=vec4(iRayColor1,1.)*rayStrength(rayPos,rayRefDir1,tiltedCoord,36.2214,21.11349,iSpeed);vec4 rays2=vec4(iRayColor2,1.)*rayStrength(rayPos,rayRefDir2,tiltedCoord,22.3991,18.0234,iSpeed*.2);vec4 color=rays1*(1.-iBlend)*.9+rays2*iBlend*.9;float distanceToLight=length(fragCoord.xy-vec2(rayPos.x,iResolution.y-rayPos.y))/iResolution.y;float brightness=iIntensity*.4/pow(max(distanceToLight,.001),iFalloff);color.rgb*=brightness;color.a=max(color.r,max(color.g,color.b));fragColor=color;}`;
-const FRAG_SILK=`#version 300 es\nprecision highp float;in vec2 vUv;out vec4 fragColor;uniform float uTime;uniform vec3 uColorA;uniform vec3 uColorB;uniform vec3 uColorC;uniform float uSpeed;uniform float uScale;uniform float uRotation;uniform float uNoiseIntensity;uniform float uIntensity;const float e=2.71828182845904523536;float noise(vec2 texCoord){float G=e;vec2 r=(G*sin(G*texCoord));return fract(r.x*r.y*(1.+texCoord.x));}vec2 rotateUvs(vec2 uv,float angle){float c=cos(angle),s=sin(angle);mat2 rot=mat2(c,-s,s,c);return rot*uv;}void main(){float rnd=noise(gl_FragCoord.xy);vec2 uv=rotateUvs(vUv*uScale,uRotation);vec2 tex=uv*uScale;float tOffset=uSpeed*uTime;tex.y+=.03*sin(8.*tex.x-tOffset);float pattern=.6+.4*sin(5.*(tex.x+tex.y+cos(3.*tex.x+5.*tex.y)+.02*tOffset)+sin(20.*(tex.x+tex.y-.1*tOffset)));float flow=clamp(.5+.5*sin((uv.x+uv.y)*3.2+tOffset*.22),0.,1.);vec3 base=flow<.5?mix(uColorA,uColorB,flow*2.):mix(uColorB,uColorC,(flow-.5)*2.);vec4 col=vec4(base,1.)*vec4(pattern)-rnd/15.*uNoiseIntensity;col.rgb*=uIntensity;col.a=1.;fragColor=col;}`;
-function runShaderCanvas(canvas,opts){const gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:false,antialias:true});if(!gl)throw new Error('WebGL2 unavailable');const fragMap={strands:FRAG_STRANDS,galaxy:FRAG_GALAXY,prismatic:FRAG_PRISMATIC,siderays:FRAG_SIDERAYS,silk:FRAG_SILK};const fragSource=fragMap[opts.mode]||FRAG_STRANDS;const vs=compileGL(gl,gl.VERTEX_SHADER,VERT300),fs=compileGL(gl,gl.FRAGMENT_SHADER,fragSource);const program=gl.createProgram();gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program)||'Shader link failed');gl.useProgram(program);const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const loc=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(0,0,0,0);const U=n=>gl.getUniformLocation(program,n),u1=(n,v)=>{const l=U(n);if(l!==null)gl.uniform1f(l,v)},ui=(n,v)=>{const l=U(n);if(l!==null)gl.uniform1i(l,v)},u2=(n,a,b)=>{const l=U(n);if(l!==null)gl.uniform2f(l,a,b)},u3=(n,a,b,c)=>{const l=U(n);if(l!==null)gl.uniform3f(l,a,b,c)};const palette=opts.colors?.length?opts.colors:['#FF4242','#7C3AED','#06B6D4','#EAB308'];let gradTex=null;if(opts.mode==='strands'){const packed=[];for(let i=0;i<8;i++)packed.push(...hexRgb(palette[i]||palette[palette.length-1]));const l=U('uColors[0]');if(l!==null)gl.uniform3fv(l,new Float32Array(packed));ui('uColorCount',Math.min(palette.length,8));ui('uStrandCount',3);u1('uAmplitude',1);u1('uWaviness',1);u1('uThickness',.7);u1('uGlow',2.6);u1('uTaper',3);u1('uSpread',1);u1('uHueShift',0);u1('uSaturation',1.5);}if(opts.mode==='galaxy'){const packed=[];for(let i=0;i<4;i++)packed.push(...hexRgb(palette[i]||palette[0]));const l=U('uColors[0]');if(l!==null)gl.uniform3fv(l,new Float32Array(packed));ui('uColorCount',Math.min(palette.length,4));u3('uTint',...hexRgb(palette[0]||'#FFFFFF'));u2('uFocal',.5,.5);u2('uRotation',1,0);u1('uHueShift',0);u1('uGlowIntensity',.3*opts.intensity);u1('uSaturation',0);ui('uMouseRepulsion',1);u1('uTwinkleIntensity',.3);u1('uRepulsionStrength',2);u1('uAutoCenterRepulsion',0);}if(opts.mode==='prismatic'){gradTex=makeGradientTexture(gl,palette);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,gradTex);ui('uGradient',0);ui('uColorCount',palette.length);ui('uAnimType',1);u2('uMouse',.5,.5);u1('uDistort',0);u2('uOffset',0,0);u1('uNoiseAmount',.8);ui('uRayCount',0);}if(opts.mode==='siderays'){const a=hexRgb(palette[0]||'#EAB308'),b=hexRgb(palette[1]||'#96C8FF');u3('iRayColor1',...a);u3('iRayColor2',...b);u1('iSpread',2*opts.scale);u1('iFlipX',0);u1('iFlipY',0);u1('iTilt',0);u1('iSaturation',1.5);u1('iBlend',.75);u1('iFalloff',1.6);}if(opts.mode==='silk'){u3('uColorA',...hexRgb(palette[0]||'#8B5CF6'));u3('uColorB',...hexRgb(palette[1]||'#4F46E5'));u3('uColorC',...hexRgb(palette[2]||'#22D3EE'));u1('uRotation',0);u1('uNoiseIntensity',1.5);}let raf=0,ro=null,dead=false,targetMouse=[.5,.5],smoothMouse=[.5,.5],mouseActive=0,targetActive=0;const host=canvas.parentElement;const move=e=>{if(opts.mode!=='galaxy')return;const r=host.getBoundingClientRect();targetMouse=[(e.clientX-r.left)/r.width,1-(e.clientY-r.top)/r.height];targetActive=1},leave=()=>targetActive=0;host.addEventListener('mousemove',move);host.addEventListener('mouseleave',leave);function resize(){const r=canvas.getBoundingClientRect(),dpr=(opts.mode==='strands'||opts.mode==='galaxy')?1:Math.min(devicePixelRatio||1,2),w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}gl.viewport(0,0,w,h)}ro=new ResizeObserver(resize);ro.observe(canvas);resize();const start=performance.now();function frame(now){if(dead)return;resize();const t=(now-start)/1000,w=canvas.width,h=canvas.height;gl.clear(gl.COLOR_BUFFER_BIT);gl.useProgram(program);if(opts.mode==='strands'){u1('uTime',t);u2('uResolution',w,h);u1('uSpeed',.5*opts.speed);u1('uIntensity',.6*opts.intensity);u1('uScale',1.5*opts.scale);}else if(opts.mode==='galaxy'){smoothMouse[0]+=(targetMouse[0]-smoothMouse[0])*.05;smoothMouse[1]+=(targetMouse[1]-smoothMouse[1])*.05;mouseActive+=(targetActive-mouseActive)*.05;u1('uTime',t);u3('uResolution',w,h,w/h);u1('uStarSpeed',(t*.5)/10);u1('uDensity',1*opts.scale);u1('uSpeed',1*opts.speed);u2('uMouse',smoothMouse[0],smoothMouse[1]);u1('uMouseActiveFactor',mouseActive);u1('uRotationSpeed',.1*opts.speed);}else if(opts.mode==='prismatic'){u2('uResolution',w,h);u1('uTime',t);u1('uIntensity',2*opts.intensity);u1('uSpeed',.5*opts.speed);}else if(opts.mode==='siderays'){u1('iTime',t);u2('iResolution',w,h);u1('iSpeed',2.5*opts.speed);u1('iIntensity',2*opts.intensity);}else if(opts.mode==='silk'){u1('uTime',t*.1);u1('uSpeed',5*opts.speed);u1('uScale',1*opts.scale);u1('uIntensity',opts.intensity);}gl.drawArrays(gl.TRIANGLE_STRIP,0,4);raf=requestAnimationFrame(frame)}raf=requestAnimationFrame(frame);return ()=>{dead=true;cancelAnimationFrame(raf);ro.disconnect();host.removeEventListener('mousemove',move);host.removeEventListener('mouseleave',leave);try{if(gradTex)gl.deleteTexture(gradTex);gl.deleteBuffer(buf);gl.deleteProgram(program);gl.deleteShader(vs);gl.deleteShader(fs);gl.getExtension('WEBGL_lose_context')?.loseContext()}catch{}}}
+function makeProgram(gl,frag){const vs=compileGL(gl,gl.VERTEX_SHADER,VERT300),fs=compileGL(gl,gl.FRAGMENT_SHADER,frag),p=gl.createProgram();gl.attachShader(p,vs);gl.attachShader(p,fs);gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS)){const msg=gl.getProgramInfoLog(p);throw new Error(msg||'Shader link failed')}return {program:p,vs,fs}}
+function bindQuad(gl,program){const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const loc=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);return buf}
+function paletteUniform(gl,program,colors){const packed=[];for(let i=0;i<4;i++)packed.push(...hexRgb(colors[i]||colors[colors.length-1]||'#FFFFFF'));const loc=gl.getUniformLocation(program,'uColors[0]');if(loc!==null)gl.uniform3fv(loc,new Float32Array(packed))}
+
+function runShaderCanvas(canvas,opts={}){
+  const gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:false,antialias:true,powerPreference:'high-performance'});if(!gl)throw new Error('WebGL2 unavailable');
+  const frag={strands:FRAG_STRANDS,galaxy:FRAG_GALAXY,prismatic:FRAG_PRISMATIC,siderays:FRAG_SIDERAYS,silk:FRAG_SILK,gradflow:FRAG_GRADFLOW}[opts.mode]||FRAG_STRANDS;
+  const {program,vs,fs}=makeProgram(gl,frag);gl.useProgram(program);const buf=bindQuad(gl,program);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(0,0,0,0);
+  const U=n=>gl.getUniformLocation(program,n),u1=(n,v)=>{const l=U(n);if(l!==null)gl.uniform1f(l,v)},ui=(n,v)=>{const l=U(n);if(l!==null)gl.uniform1i(l,v)},u2=(n,a,b)=>{const l=U(n);if(l!==null)gl.uniform2f(l,a,b)};
+  paletteUniform(gl,program,opts.colors||['#ff4242','#7c3aed','#06b6d4','#eab308']);
+  ui('uGradType',GRAD_TYPES[opts.gradType||'aurora']??8);u1('uNoise',opts.noise??.2);
+  let raf=0,dead=false,ro=null;const target=opts.target||canvas.parentElement;let mouse=[.5,.5],active=0,targetActive=0;
+  const move=e=>{if(!target)return;const r=target.getBoundingClientRect();mouse=[(e.clientX-r.left)/r.width,1-(e.clientY-r.top)/r.height];targetActive=1};const leave=()=>targetActive=0;target?.addEventListener('pointermove',move);target?.addEventListener('pointerleave',leave);
+  const resize=()=>{const r=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2),w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}gl.viewport(0,0,w,h)};ro=new ResizeObserver(resize);ro.observe(canvas);resize();const t0=performance.now();
+  const frame=now=>{if(dead)return;resize();active+=(targetActive-active)*.08;gl.clear(gl.COLOR_BUFFER_BIT);gl.useProgram(program);u1('uTime',(now-t0)/1000);u2('uResolution',canvas.width,canvas.height);u1('uSpeed',opts.speed??1);u1('uScale',opts.scale??1);u1('uIntensity',opts.intensity??1);u2('uMouse',mouse[0],mouse[1]);u1('uMouseActive',active);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);raf=requestAnimationFrame(frame)};raf=requestAnimationFrame(frame);
+  return()=>{dead=true;cancelAnimationFrame(raf);ro?.disconnect();target?.removeEventListener('pointermove',move);target?.removeEventListener('pointerleave',leave);try{gl.deleteBuffer(buf);gl.deleteProgram(program);gl.deleteShader(vs);gl.deleteShader(fs);gl.getExtension('WEBGL_lose_context')?.loseContext()}catch{}}
+}
+
+function makeShapeTexture(gl,path,viewW,viewH){const c=document.createElement('canvas');c.width=256;c.height=256;const ctx=c.getContext('2d');ctx.clearRect(0,0,256,256);ctx.fillStyle='#fff';ctx.save();ctx.scale(256/viewW,256/viewH);ctx.fill(new Path2D(path));ctx.restore();const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);return tex}
+
+function runVfxShadowCanvas(canvas,opts={}){
+  const gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:false,antialias:true,powerPreference:'high-performance'});if(!gl)throw new Error('WebGL2 unavailable');
+  const {program,vs,fs}=makeProgram(gl,FRAG_SHADOW);gl.useProgram(program);const buf=bindQuad(gl,program);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(0,0,0,0);
+  const tex=makeShapeTexture(gl,opts.path,opts.viewW||96.5049,opts.viewH||93.666);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);const shapeLoc=gl.getUniformLocation(program,'uShape');if(shapeLoc!==null)gl.uniform1i(shapeLoc,0);paletteUniform(gl,program,opts.colors||['#ff4242','#7c3aed','#06b6d4','#eab308']);
+  const U=n=>gl.getUniformLocation(program,n),u1=(n,v)=>{const l=U(n);if(l!==null)gl.uniform1f(l,v)},u2=(n,a,b)=>{const l=U(n);if(l!==null)gl.uniform2f(l,a,b)},u4=(n,a,b,c,d)=>{const l=U(n);if(l!==null)gl.uniform4f(l,a,b,c,d)};
+  const rect=opts.shapeRect||[.2917,.2917,.4166,.4166];u4('uShapeRect',...rect);u1('uIntensity',opts.intensity??1);u1('uReach',opts.reach??1);u1('uJitter',opts.jitter??.55);
+  let raf=0,dead=false,ro=null;const target=opts.target||canvas.parentElement;let pointer=[.26,.74],pointerActive=0;const move=e=>{const r=canvas.getBoundingClientRect();pointer=[(e.clientX-r.left)/r.width,1-(e.clientY-r.top)/r.height];pointerActive=1};const leave=()=>{pointerActive=0};target?.addEventListener('pointermove',move);target?.addEventListener('pointerleave',leave);
+  const resize=()=>{const r=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,1.5),w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}gl.viewport(0,0,w,h)};ro=new ResizeObserver(resize);ro.observe(canvas);resize();const t0=performance.now();
+  const frame=now=>{if(dead)return;resize();const t=(now-t0)/1000;let light=pointer;if((opts.lightMode||'pointer')==='orbit'&&!pointerActive){light=[.5+.34*Math.cos(t*.45),.5+.34*Math.sin(t*.45)]}gl.clear(gl.COLOR_BUFFER_BIT);gl.useProgram(program);u2('uResolution',canvas.width,canvas.height);u2('uLight',light[0],light[1]);u1('uTime',t);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);raf=requestAnimationFrame(frame)};raf=requestAnimationFrame(frame);
+  return()=>{dead=true;cancelAnimationFrame(raf);ro?.disconnect();target?.removeEventListener('pointermove',move);target?.removeEventListener('pointerleave',leave);try{gl.deleteTexture(tex);gl.deleteBuffer(buf);gl.deleteProgram(program);gl.deleteShader(vs);gl.deleteShader(fs);gl.getExtension('WEBGL_lose_context')?.loseContext()}catch{}}
+}
