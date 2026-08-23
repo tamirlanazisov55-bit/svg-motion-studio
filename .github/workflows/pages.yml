@@ -1,3 +1,4 @@
+# Canonical deploy workflow for Star Shader Lab
 name: Deploy site
 
 on:
