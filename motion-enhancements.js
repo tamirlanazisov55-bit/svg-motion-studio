@@ -14,6 +14,22 @@ if(state.revealRotationDegrees==null)state.revealRotationDegrees=220;
 if(state.glowStrokeThickness==null)state.glowStrokeThickness=1;
 if(state.introStartScale===.82)state.introStartScale=.18;
 
+// Keep enhancement UI self-contained so older index.html builds still receive new controls.
+const smsEasingSelect=$('#revealEasing');
+if(smsEasingSelect&&!smsEasingSelect.querySelector('option[value="quint"]')){
+  const option=document.createElement('option');option.value='quint';option.textContent='easeInOutQuint';smsEasingSelect.appendChild(option);
+}
+if(!$('#revealRotationDegrees')){
+  const startScale=$('#introStartScale');
+  const stack=startScale?.closest('.slider-stack');
+  if(stack){
+    const row=document.createElement('label');
+    row.className='slider-row';row.id='revealRotationRow';row.hidden=true;
+    row.innerHTML='<span>Spin amount</span><output id="revealRotationDegreesVal"></output><input id="revealRotationDegrees" type="range" min="0" max="1080" step="5" value="220">';
+    stack.appendChild(row);
+  }
+}
+
 const smsStyle=document.createElement('style');
 smsStyle.textContent=`
 .star-intro{overflow:visible!important}
