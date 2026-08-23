@@ -183,7 +183,7 @@ void main(){
   fragColor=vec4(max(col,0.),alpha);
 }`;
 
-const GRAD_TYPES={linear:0,conic:1,animated:2,wave:3,silk:4,smoke:5,stripe:6,mesh:7,aurora:8};
+const GRAD_TYPE_IDS={linear:0,conic:1,animated:2,wave:3,silk:4,smoke:5,stripe:6,mesh:7,aurora:8};
 
 function hexRgb(hex){const h=(hex||'#fff').replace('#','');const x=h.length===3?[...h].map(c=>c+c).join(''):h;const n=parseInt(x.slice(0,6),16);return [((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255]}
 function compileGL(gl,type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){const msg=gl.getShaderInfoLog(sh);gl.deleteShader(sh);throw new Error(msg||'Shader compile failed')}return sh}
@@ -197,7 +197,7 @@ function runShaderCanvas(canvas,opts={}){
   const {program,vs,fs}=makeProgram(gl,frag);gl.useProgram(program);const buf=bindQuad(gl,program);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(0,0,0,0);
   const U=n=>gl.getUniformLocation(program,n),u1=(n,v)=>{const l=U(n);if(l!==null)gl.uniform1f(l,v)},ui=(n,v)=>{const l=U(n);if(l!==null)gl.uniform1i(l,v)},u2=(n,a,b)=>{const l=U(n);if(l!==null)gl.uniform2f(l,a,b)};
   paletteUniform(gl,program,opts.colors||['#ff4242','#7c3aed','#06b6d4','#eab308']);
-  ui('uGradType',GRAD_TYPES[opts.gradType||'aurora']??8);u1('uNoise',opts.noise??.2);
+  ui('uGradType',GRAD_TYPE_IDS[opts.gradType||'aurora']??8);u1('uNoise',opts.noise??.2);
   let raf=0,dead=false,ro=null;const target=opts.target||canvas.parentElement;let mouse=[.5,.5],active=0,targetActive=0;
   const move=e=>{if(!target)return;const r=target.getBoundingClientRect();mouse=[(e.clientX-r.left)/r.width,1-(e.clientY-r.top)/r.height];targetActive=1};const leave=()=>targetActive=0;target?.addEventListener('pointermove',move);target?.addEventListener('pointerleave',leave);
   const resize=()=>{const r=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2),w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}gl.viewport(0,0,w,h)};ro=new ResizeObserver(resize);ro.observe(canvas);resize();const t0=performance.now();
