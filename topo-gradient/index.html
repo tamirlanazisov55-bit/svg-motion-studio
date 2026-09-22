@@ -4,7 +4,22 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Topo / Pulse Gradient Tool</title>
-<link rel="stylesheet" href="./styles.css">
+<style>
+  :root{--bg:#050505;--panel:rgba(13,13,14,.9);--line:rgba(255,255,255,.11);--text:#f3f3f3;--muted:#a7a7ad;--accent:#7d45fe}
+  *{box-sizing:border-box} html,body{margin:0;height:100%;background:#000;color:var(--text);font:12px/1.25 Inter,system-ui,Segoe UI,Arial,sans-serif;overflow:hidden}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block;background:#000}
+  .panel{position:fixed;left:14px;top:14px;width:320px;max-height:calc(100vh - 28px);overflow:auto;padding:12px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(18,18,20,.92),rgba(8,8,9,.94));backdrop-filter: blur(8px);box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .title{font-size:15px;font-weight:700;margin-bottom:10px}.sub{font-size:11px;color:var(--muted);margin-bottom:10px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+  .full{margin-bottom:8px}.label{font-size:11px;color:var(--muted);margin-bottom:4px;display:flex;justify-content:space-between;gap:8px}.value{color:#fff}
+  select,input[type="color"],button{width:100%;height:34px;border-radius:10px;border:1px solid var(--line);background:#111214;color:#f6f6f7;padding:0 10px}
+  input[type="range"]{width:100%} button{cursor:pointer;font-weight:600}
+  button:hover{background:#18191d} .swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .swatchWrap{display:grid;gap:4px}.swatchWrap input[type=color]{padding:0;border-radius:10px;height:34px;background:transparent}
+  textarea{width:100%;min-height:84px;border-radius:10px;border:1px solid var(--line);background:#0f1012;color:#eaeaf0;padding:8px;resize:vertical;font:11px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .toggle{display:flex;align-items:center;gap:8px}.toggle input{accent-color:var(--accent)}
+  .footer{color:var(--muted);font-size:11px;margin-top:8px}
+</style>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -43,46 +58,433 @@
   </div>
 
   <div class="row">
-    <div><div class="label"><span>spots</span><span class="value" id="spotsVal"></span></div><input id="spots" type="range" min="1" max="10" step="1" /></div>
-    <div><div class="label"><span>levels</span><span class="value" id="levelsVal"></span></div><input id="levels" type="range" min="3" max="16" step="1" /></div>
+    <div>
+      <div class="label"><span>spots</span><span class="value" id="spotsVal"></span></div>
+      <input id="spots" type="range" min="1" max="10" step="1" />
+    </div>
+    <div>
+      <div class="label"><span>levels</span><span class="value" id="levelsVal"></span></div>
+      <input id="levels" type="range" min="3" max="16" step="1" />
+    </div>
   </div>
 
   <div class="row">
-    <div><div class="label"><span>distance</span><span class="value" id="distanceVal"></span></div><input id="distance" type="range" min="0.15" max="0.85" step="0.01" /></div>
-    <div><div class="label"><span>distance variance</span><span class="value" id="distanceVarianceVal"></span></div><input id="distanceVariance" type="range" min="0" max="1" step="0.01" /></div>
+    <div>
+      <div class="label"><span>distance</span><span class="value" id="distanceVal"></span></div>
+      <input id="distance" type="range" min="0.15" max="0.85" step="0.01" />
+    </div>
+    <div>
+      <div class="label"><span>distance variance</span><span class="value" id="distanceVarianceVal"></span></div>
+      <input id="distanceVariance" type="range" min="0" max="1" step="0.01" />
+    </div>
   </div>
 
   <div class="row">
-    <div><div class="label"><span>connectedness</span><span class="value" id="connectednessVal"></span></div><input id="connectedness" type="range" min="0" max="1" step="0.01" /></div>
-    <div><div class="label"><span>warp</span><span class="value" id="warpVal"></span></div><input id="warp" type="range" min="0" max="0.8" step="0.01" /></div>
+    <div>
+      <div class="label"><span>connectedness</span><span class="value" id="connectednessVal"></span></div>
+      <input id="connectedness" type="range" min="0" max="1" step="0.01" />
+    </div>
+    <div>
+      <div class="label"><span>warp</span><span class="value" id="warpVal"></span></div>
+      <input id="warp" type="range" min="0" max="0.8" step="0.01" />
+    </div>
   </div>
 
   <div class="row">
-    <div><div class="label"><span>grid pixel</span><span class="value" id="gridPixelVal"></span></div><input id="gridPixel" type="range" min="8" max="120" step="1" /></div>
-    <div><div class="label"><span>pixel stretch</span><span class="value" id="pixelStretchVal"></span></div><input id="pixelStretch" type="range" min="1" max="5" step="0.05" /></div>
+    <div>
+      <div class="label"><span>grid pixel</span><span class="value" id="gridPixelVal"></span></div>
+      <input id="gridPixel" type="range" min="8" max="120" step="1" />
+    </div>
+    <div>
+      <div class="label"><span>pixel stretch</span><span class="value" id="pixelStretchVal"></span></div>
+      <input id="pixelStretch" type="range" min="1" max="5" step="0.05" />
+    </div>
   </div>
 
   <div class="row">
-    <div><div class="label"><span>line opacity</span><span class="value" id="lineOpacityVal"></span></div><input id="lineOpacity" type="range" min="0" max="1" step="0.01" /></div>
-    <div><div class="label"><span>material opacity</span><span class="value" id="materialOpacityVal"></span></div><input id="materialOpacity" type="range" min="0" max="1" step="0.01" /></div>
+    <div>
+      <div class="label"><span>line opacity</span><span class="value" id="lineOpacityVal"></span></div>
+      <input id="lineOpacity" type="range" min="0" max="1" step="0.01" />
+    </div>
+    <div>
+      <div class="label"><span>material opacity</span><span class="value" id="materialOpacityVal"></span></div>
+      <input id="materialOpacity" type="range" min="0" max="1" step="0.01" />
+    </div>
   </div>
 
   <div class="row">
-    <div><div class="label"><span>pulse speed</span><span class="value" id="pulseSpeedVal"></span></div><input id="pulseSpeed" type="range" min="0" max="100" step="1" /></div>
-    <div><div class="label"><span>pulse amount</span><span class="value" id="pulseAmountVal"></span></div><input id="pulseAmount" type="range" min="0" max="1" step="0.01" /></div>
+    <div>
+      <div class="label"><span>pulse speed</span><span class="value" id="pulseSpeedVal"></span></div>
+      <input id="pulseSpeed" type="range" min="0" max="100" step="1" />
+    </div>
+    <div>
+      <div class="label"><span>pulse amount</span><span class="value" id="pulseAmountVal"></span></div>
+      <input id="pulseAmount" type="range" min="0" max="1" step="0.01" />
+    </div>
   </div>
 
   <div class="row">
-    <div><div class="label"><span>blur</span><span class="value" id="blurVal"></span></div><input id="blur" type="range" min="0" max="40" step="1" /></div>
-    <div><div class="label"><span>glow</span><span class="value" id="glowVal"></span></div><input id="glow" type="range" min="0" max="2" step="0.01" /></div>
+    <div>
+      <div class="label"><span>blur</span><span class="value" id="blurVal"></span></div>
+      <input id="blur" type="range" min="0" max="40" step="1" />
+    </div>
+    <div>
+      <div class="label"><span>glow</span><span class="value" id="glowVal"></span></div>
+      <input id="glow" type="range" min="0" max="2" step="0.01" />
+    </div>
   </div>
 
-  <div class="full toggle"><input id="animate" type="checkbox" checked /><label for="animate">animate pulse</label></div>
-  <div class="full"><div class="label"><span>json</span><span class="value">paste / inspect</span></div><textarea id="jsonBox"></textarea></div>
-  <div class="row"><button id="applyJson">apply json</button><button id="formatJson">format</button></div>
+  <div class="full toggle">
+    <input id="animate" type="checkbox" checked />
+    <label for="animate">animate pulse</label>
+  </div>
+
+  <div class="full">
+    <div class="label"><span>json</span><span class="value">paste / inspect</span></div>
+    <textarea id="jsonBox"></textarea>
+  </div>
+  <div class="row">
+    <button id="applyJson">apply json</button>
+    <button id="formatJson">format</button>
+  </div>
+
   <div class="footer">Reference towers — отдельный генератор: жёсткие вертикальные колонки, ступенчатые края, чёрные разрывы и локальный glow. Pulse screen оставлен отдельно.</div>
 </div>
-<script src="./app-core.js"></script>
-<script src="./app-towers.js"></script>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const controls = {};
+for (const id of ['mode','palettePreset','spots','levels','distance','distanceVariance','connectedness','warp','gridPixel','pixelStretch','lineOpacity','materialOpacity','pulseSpeed','pulseAmount','blur','glow','animate','jsonBox']) controls[id]=document.getElementById(id);
+const labels = {};
+for (const id of ['spots','levels','distance','distanceVariance','connectedness','warp','gridPixel','pixelStretch','lineOpacity','materialOpacity','pulseSpeed','pulseAmount','blur','glow']) labels[id]=document.getElementById(id+'Val');
+
+const presets = {
+  'Signal Blue': ['#050505','#090c2f','#18216b','#3140a9','#7e84d5','#c7c9ea'],
+  'Signal Magenta': ['#050505','#2a0015','#6f173e','#a64c63','#d48074','#f6a38a'],
+  'Screen Dual': ['#050505','#1f0128','#542b85','#8b1030','#90a5e8','#ffffff'],
+  'Grid Pulse Red': ['#000000','#711564','#de47b6','#df0000','#ce2600','#ff6c49'],
+  'CE2600 / DF0000 / DE47B6': ['#000000','#711564','#de47b6','#df0000','#ce2600','#ff6c49'],
+  'Custom': ['#050505','#090c2f','#18216b','#3140a9','#7e84d5','#c7c9ea'],
+};
+const presetNames = Object.keys(presets);
+const swatchesWrap = document.getElementById('swatches');
+let colorInputs = [];
+function buildSwatches(){
+  swatchesWrap.innerHTML=''; colorInputs=[];
+  for(let i=0;i<6;i++){
+    const wrap=document.createElement('div'); wrap.className='swatchWrap';
+    const inp=document.createElement('input'); inp.type='color'; inp.dataset.idx=i;
+    inp.addEventListener('input',()=>{ state.palette[i]=inp.value; state.palettePreset='Custom'; controls.palettePreset.value='Custom'; pulseCacheKey=''; syncJson(); requestRender(); });
+    wrap.appendChild(inp); swatchesWrap.appendChild(wrap); colorInputs.push(inp);
+  }
+}
+
+const state = {
+  mode:'topographic', palettePreset:'Signal Blue', palette:[...presets['Signal Blue']],
+  spots:5, levels:11, distance:0.38, distanceVariance:0.54, connectedness:0.62, warp:0.18,
+  gridPixel:14, pixelStretch:1.32, lineOpacity:0, materialOpacity:1, pulseSpeed:24, pulseAmount:0.28,
+  blur:6, glow:0.85, animate:true, seed:Math.random()*1e9|0, blobs:[]
+};
+
+function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296}}
+function hexToRgb(h){h=h.replace('#',''); if(h.length===3) h=[...h].map(x=>x+x).join(''); const n=parseInt(h,16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}}
+function mix(a,b,t){return a+(b-a)*t}
+function mixColor(c1,c2,t){const a=hexToRgb(c1),b=hexToRgb(c2); return `rgb(${mix(a.r,b.r,t)|0},${mix(a.g,b.g,t)|0},${mix(a.b,b.b,t)|0})`}
+function lerpPalette(pal, t){t=Math.max(0,Math.min(0.9999,t)); const n=pal.length-1; const idx=Math.floor(t*n); const lt=t*n-idx; return mixColor(pal[idx],pal[Math.min(n,idx+1)],lt)}
+function fmt(v,d=2){return (+v).toFixed(d).replace(/\.00$/,'').replace(/(\.\d*[1-9])0+$/,'$1')}
+function setCanvas(){
+  const dpr=Math.min(1.5, devicePixelRatio||1);
+  canvas.width=Math.max(1,Math.floor(innerWidth*dpr));
+  canvas.height=Math.max(1,Math.floor(innerHeight*dpr));
+  canvas.style.width=innerWidth+'px'; canvas.style.height=innerHeight+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+addEventListener('resize',()=>{setCanvas(); pulseCacheKey=''; towerCacheKey=''; requestRender()});
+
+function generateBlobs(){
+  const rnd=mulberry32(state.seed);
+  const arr=[]; const cx=.5, cy=.58;
+  let angle = rnd()*Math.PI*2;
+  for(let i=0;i<state.spots;i++){
+    const ring = state.distance * (0.2 + 0.8*(i/Math.max(1,state.spots-1)));
+    const variance = state.distanceVariance * (rnd()-.5) * 0.8;
+    angle += (Math.PI*2/state.spots)*(0.65 + rnd()*0.6);
+    const r = Math.max(0.05, ring + variance);
+    const px = cx + Math.cos(angle)*r*0.95;
+    const py = cy + Math.sin(angle)*(r*0.55 + variance*0.5);
+    arr.push({
+      x: Math.max(0.04,Math.min(0.96, px)),
+      y: Math.max(0.04,Math.min(0.96, py)),
+      rx: 0.08 + rnd()*0.11,
+      ry: 0.12 + rnd()*0.18,
+      amp: 0.7 + rnd()*0.8,
+      tilt: rnd()*Math.PI*2,
+      bias: rnd()*0.4
+    });
+  }
+  state.blobs=arr;
+}
+
+function fieldAt(nx,ny,t){
+  let v=0;
+  for(const b of state.blobs){
+    const ct=Math.cos(b.tilt), st=Math.sin(b.tilt);
+    let dx=nx-b.x, dy=ny-b.y;
+    if(state.warp>0){
+      dx += Math.sin((ny*4 + t*0.00015*state.pulseSpeed + b.bias)*6.283)*0.02*state.warp;
+      dy += Math.cos((nx*3 - t*0.0001*state.pulseSpeed + b.bias)*6.283)*0.02*state.warp;
+    }
+    const rx = dx*ct - dy*st, ry = dx*st + dy*ct;
+    const g = Math.exp(-(rx*rx/(b.rx*b.rx) + ry*ry/(b.ry*b.ry))*2.2);
+    v += g * b.amp;
+  }
+  if(state.connectedness>0){
+    v += Math.exp(-(((nx-.5)**2)/0.22 + ((ny-.55)**2)/0.48))*state.connectedness*0.9;
+  }
+  return v;
+}
+
+function sampleGrid(cols, rows, t){
+  const vals=[]; let min=1e9,max=-1e9;
+  for(let y=0;y<rows;y++){
+    const row=[];
+    for(let x=0;x<cols;x++){
+      const nx=(x+0.5)/cols, ny=(y+0.5)/rows;
+      let v = fieldAt(nx,ny,t);
+      min=Math.min(min,v); max=Math.max(max,v); row.push(v);
+    }
+    vals.push(row);
+  }
+  const span=(max-min)||1;
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++) vals[y][x]=(vals[y][x]-min)/span;
+  return vals;
+}
+
+function drawTopographic(t){
+  const cols = Math.max(40, Math.floor(innerWidth / Math.max(8,state.gridPixel*0.9)));
+  const rows = Math.max(24, Math.floor(innerHeight / Math.max(8,state.gridPixel*0.9)));
+  const vals=sampleGrid(cols,rows,t); const cw=innerWidth/cols, ch=innerHeight/rows;
+  ctx.fillStyle='#050505'; ctx.fillRect(0,0,innerWidth,innerHeight);
+  if(state.blur>0) ctx.filter=`blur(${state.blur}px)`; else ctx.filter='none';
+  ctx.globalAlpha=Math.max(.08,state.materialOpacity);
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+    const v=vals[y][x];
+    ctx.fillStyle=lerpPalette(state.palette, v);
+    ctx.fillRect(x*cw, y*ch, cw+1, ch+1);
+  }
+  ctx.filter='none'; ctx.globalAlpha=1;
+  if(state.lineOpacity>0){
+    ctx.globalAlpha=state.lineOpacity;
+    ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=1;
+    const levels=state.levels;
+    for(let l=1;l<levels;l++){
+      const th=l/levels;
+      ctx.beginPath();
+      for(let y=0;y<rows-1;y++) for(let x=0;x<cols-1;x++){
+        const v=vals[y][x]; const vr=vals[y][x+1]; const vb=vals[y+1][x];
+        if((v<th)!=(vr<th)){ const px=(x+(th-v)/(vr-v))*cw; const py=y*ch; ctx.moveTo(px,py); ctx.lineTo(px,py+ch); }
+        if((v<th)!=(vb<th)){ const px=x*cw; const py=(y+(th-v)/(vb-v))*ch; ctx.moveTo(px,py); ctx.lineTo(px+cw,py); }
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }
+}
+
+function drawGridMode(t){
+  const cellW = Math.max(10, state.gridPixel);
+  const cellH = Math.max(10, state.gridPixel * state.pixelStretch);
+  const cols = Math.max(6, Math.ceil(innerWidth / cellW));
+  const rows = Math.max(6, Math.ceil(innerHeight / cellH));
+  const vals = sampleGrid(cols, rows, 0);
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,innerWidth,innerHeight);
+  ctx.globalAlpha=Math.max(0.04,state.materialOpacity);
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+    const v=vals[y][x];
+    const q = Math.floor(v*(state.levels-1))/(state.levels-1);
+    if(q<0.02) continue;
+    ctx.fillStyle=lerpPalette(state.palette,q);
+    ctx.fillRect(x*cellW,y*cellH,cellW+0.75,cellH+0.75);
+  }
+  ctx.globalAlpha=1;
+}
+
+function pulseFamily(){
+  const name=state.palettePreset;
+  if(name==='Signal Blue') return ['#000000','#07091f','#111750','#27358e','#6770c4','#c7c9ea'];
+  if(name==='Signal Magenta') return ['#000000','#210011','#5d0c31','#8f294e','#cc6e70','#f6a38a'];
+  if(name==='Screen Dual') return ['#000000','#15001e','#3b176a','#162168','#4d64b9','#c9c9e8'];
+  if(name==='Grid Pulse Red' || name==='CE2600 / DF0000 / DE47B6') return ['#000000','#2a0400','#711564','#de47b6','#df0000','#ce2600'];
+  return state.palette;
+}
+function pulseColor(pal,v){
+  if(v<=.02) return {r:0,g:0,b:0};
+  const c=hexToRgb(pal[Math.max(0,Math.min(pal.length-1,Math.round(v*(pal.length-1))))]);
+  return c;
+}
+
+const pulseCanvas=document.createElement('canvas');
+const pulseCtx=pulseCanvas.getContext('2d',{alpha:false});
+let pulseImage=null,pulseBase=null,pulsePhaseMap=null,pulseCacheKey='';
+function rebuildPulseCache(){
+  const cellW=Math.max(9,Math.min(26,state.gridPixel));
+  const cellH=Math.max(10,Math.round(cellW*Math.max(1.12,Math.min(1.65,state.pixelStretch))));
+  const cols=Math.max(20,Math.min(110,Math.ceil(innerWidth/cellW)));
+  const rows=Math.max(12,Math.min(70,Math.ceil(innerHeight/cellH)));
+  const key=[state.seed,state.spots,state.distance,state.distanceVariance,state.connectedness,state.warp,cols,rows,state.palettePreset,state.palette.join(',')].join('|');
+  if(key===pulseCacheKey) return;
+  pulseCacheKey=key;
+  pulseCanvas.width=cols; pulseCanvas.height=rows;
+  pulseImage=pulseCtx.createImageData(cols,rows);
+  pulseBase=new Float32Array(cols*rows); pulsePhaseMap=new Float32Array(cols*rows);
+  const vals=sampleGrid(cols,rows,0); const rnd=mulberry32(state.seed^0x9e3779b9);
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+    const i=y*cols+x;
+    let v=vals[y][x];
+    v=Math.pow(v,1.38);
+    if(v<.12) v=0;
+    const q=Math.floor(v*Math.max(4,state.levels-2))/Math.max(4,state.levels-2);
+    pulseBase[i]=q;
+    pulsePhaseMap[i]=rnd()*Math.PI*2 + x*.19 - y*.11;
+  }
+}
+function drawPulseScreen(t){
+  rebuildPulseCache();
+  const cols=pulseCanvas.width,rows=pulseCanvas.height,data=pulseImage.data,pal=pulseFamily();
+  const time=t*.0005*state.pulseSpeed;
+  for(let i=0;i<pulseBase.length;i++){
+    let v=pulseBase[i];
+    if(v>0 && state.animate){ const p=.5+.5*Math.sin(time+pulsePhaseMap[i]); v*=.84+state.pulseAmount*.34*p; }
+    v=Math.max(0,Math.min(1,v));
+    const c=pulseColor(pal,v); const d=i*4;
+    data[d]=c.r;data[d+1]=c.g;data[d+2]=c.b;data[d+3]=255;
+  }
+  pulseCtx.putImageData(pulseImage,0,0);
+  ctx.save();ctx.fillStyle='#000';ctx.fillRect(0,0,innerWidth,innerHeight);ctx.imageSmoothingEnabled=false;
+  if(state.glow>0){ctx.globalAlpha=Math.min(.28,.06+state.glow*.09);ctx.filter=`blur(${Math.max(2,Math.min(12,state.blur))}px)`;ctx.drawImage(pulseCanvas,0,0,innerWidth,innerHeight);}
+  ctx.filter='none';ctx.globalAlpha=state.materialOpacity;ctx.drawImage(pulseCanvas,0,0,innerWidth,innerHeight);ctx.restore();
+}
+
+const towerCanvas=document.createElement('canvas');
+const towerCtx=towerCanvas.getContext('2d',{alpha:false});
+let towerImage=null,towerMask=null,towerOwner=null,towerHotspot=null,towerMeta=[],towerCacheKey='';
+function towerFamilyFor(i){
+  const name=state.palettePreset;
+  if(name==='Screen Dual'){
+    const fams=[['#000000','#250010','#6b173e','#c5676e','#f6a38a','#fff0e8'],['#000000','#07091f','#172064','#3142a3','#7d83d2','#deddf2'],['#000000','#120015','#4a163f','#8f3b61','#d58b86','#f7b4a3']];
+    return fams[i%fams.length];
+  }
+  if(name==='Grid Pulse Red' || name==='CE2600 / DF0000 / DE47B6') return ['#000000','#280600','#711564','#de47b6','#df0000','#ce2600'];
+  if(name==='Signal Magenta') return ['#000000','#18000f','#50102f','#9a3856','#d47b74','#f6a38a'];
+  if(name==='Signal Blue') return ['#000000','#050823','#11185b','#2a3da0','#7d86d4','#d3d5ef'];
+  return state.palette;
+}
+function rebuildTowerCache(){
+  const cellW=Math.max(12,Math.min(38,Math.round(state.gridPixel*1.05)));
+  const cellH=Math.max(7,Math.round(cellW*.42*Math.max(1,Math.min(2.1,state.pixelStretch))));
+  const cols=Math.max(24,Math.min(120,Math.ceil(innerWidth/cellW)));
+  const rows=Math.max(24,Math.min(110,Math.ceil(innerHeight/cellH)));
+  const key=[state.seed,state.spots,state.distance,state.distanceVariance,state.connectedness,state.gridPixel,state.pixelStretch,cols,rows,state.palettePreset,state.palette.join(',')].join('|');
+  if(key===towerCacheKey)return;
+  towerCacheKey=key;
+  towerCanvas.width=cols;towerCanvas.height=rows;towerImage=towerCtx.createImageData(cols,rows);
+  towerMask=new Float32Array(cols*rows);towerOwner=new Int16Array(cols*rows);towerOwner.fill(-1);towerHotspot=new Float32Array(cols*rows);towerMeta=[];
+  const rnd=mulberry32((state.seed^0x51ed270b)>>>0);
+  const count=Math.max(3,Math.min(11,state.spots+2));
+  const margin=1;
+  let cursor=margin+Math.floor(rnd()*2);
+  for(let i=0;i<count;i++){
+    const remaining=Math.max(1,cols-cursor-margin);if(remaining<=2)break;
+    const nominal=Math.max(2,Math.round(cols/(count*1.55)));
+    const width=Math.max(2,Math.min(10,nominal+Math.round((rnd()-.5)*nominal*1.3)));
+    const gap=Math.max(1,Math.round(1+rnd()*3+state.distance*.8));
+    const grounded=rnd()<.62;
+    const height=Math.max(8,Math.min(rows-3,Math.round(rows*(.22+rnd()*.34+state.connectedness*.08))));
+    let bottom=grounded?rows-1-Math.round(rnd()*rows*.05):Math.min(rows-2,Math.round(rows*(.26+rnd()*.56)));
+    let top=Math.max(1,bottom-height+1);
+    const peakRow=Math.max(top,Math.min(bottom,Math.round(top+(bottom-top)*(0.42+rnd()*.44))));
+    const shoulder=Math.max(0,Math.round((rnd()-.5)*2));
+    const meta={x:cursor,w:width,top,bottom,peakRow,phase:rnd()*Math.PI*2,family:i,grounded};towerMeta.push(meta);
+    for(let y=top;y<=bottom;y++){
+      const rel=(y-top)/Math.max(1,bottom-top);
+      const stepBand=Math.floor((y-top)/Math.max(2,Math.round(3+rnd()*2)));
+      const leftStep=((stepBand+i)%4===0?-1:0)+(rel>.78?shoulder:0);
+      const rightStep=((stepBand+i)%5===0?1:0)+(rel<.18?-1:0);
+      const x0=Math.max(0,cursor+leftStep),x1=Math.min(cols-1,cursor+width-1+rightStep);
+      const sigma=Math.max(2,(bottom-top)*(.15+rnd()*.03));
+      const hot=Math.exp(-Math.pow((y-peakRow)/sigma,2)*1.65),base=0.12+hot*.88;
+      for(let x=x0;x<=x1;x++){
+        const idx=y*cols+x,edge=Math.min(x-x0,x1-x),edgeFade=edge<=0?.78:edge===1?.92:1;
+        towerOwner[idx]=i;towerMask[idx]=Math.max(towerMask[idx],base*edgeFade);towerHotspot[idx]=hot;
+      }
+    }
+    cursor+=width+gap;if(cursor>=cols-margin-2)break;
+  }
+  if(towerMeta.length&&rnd()<.8){
+    const i=towerMeta.length,width=Math.max(2,Math.round(cols*.045));
+    const x=Math.max(1,Math.min(cols-width-1,Math.round(cols*(.48+rnd()*.18))));
+    const top=1+Math.round(rnd()*3),bottom=Math.min(rows-3,top+Math.round(rows*.16)),peakRow=Math.round((top+bottom)*.5);
+    towerMeta.push({x,w:width,top,bottom,peakRow,phase:rnd()*Math.PI*2,family:i,grounded:false});
+    for(let y=top;y<=bottom;y++){const hot=Math.exp(-Math.pow((y-peakRow)/Math.max(2,(bottom-top)*.24),2)*1.7);for(let xx=x;xx<x+width;xx++){const idx=y*cols+xx;towerOwner[idx]=i;towerMask[idx]=.12+hot*.88;towerHotspot[idx]=hot;}}
+  }
+}
+function drawTowerScreen(t){
+  rebuildTowerCache();
+  const cols=towerCanvas.width,rows=towerCanvas.height,data=towerImage.data,phase=t*.0005*state.pulseSpeed;
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+    const idx=y*cols+x,own=towerOwner[idx];let r=0,g=0,b=0;
+    if(own>=0){
+      const meta=towerMeta[own];let v=towerMask[idx];
+      if(state.animate){const travel=.5+.5*Math.sin(phase+meta.phase-y*.20),breath=.5+.5*Math.sin(phase*.72+meta.phase+x*.055);v*=.82+state.pulseAmount*(.10+travel*.23+breath*.08);}
+      const levels=Math.max(5,Math.min(14,state.levels));v=Math.floor(Math.max(0,Math.min(.999,v))*levels)/levels;
+      const c=pulseColor(towerFamilyFor(meta.family),v);r=c.r;g=c.g;b=c.b;
+      if((state.palettePreset==='Grid Pulse Red'||state.palettePreset==='CE2600 / DF0000 / DE47B6')&&((y+own*3)%17===0)&&v>.16){r=Math.min(255,r+45);g=Math.min(255,g+35);b=Math.min(255,b+55);}
+    }
+    const di=idx*4;data[di]=r;data[di+1]=g;data[di+2]=b;data[di+3]=255;
+  }
+  towerCtx.putImageData(towerImage,0,0);
+  ctx.save();ctx.fillStyle='#000';ctx.fillRect(0,0,innerWidth,innerHeight);ctx.imageSmoothingEnabled=false;
+  if(state.glow>0){ctx.globalAlpha=Math.min(.30,.07+state.glow*.10);ctx.filter=`blur(${Math.max(2,Math.min(12,state.blur))}px)`;ctx.drawImage(towerCanvas,0,0,innerWidth,innerHeight);}
+  ctx.filter='none';ctx.globalAlpha=Math.max(.05,state.materialOpacity);ctx.drawImage(towerCanvas,0,0,innerWidth,innerHeight);ctx.restore();
+}
+
+let raf=0,dirty=true,lastFrame=0;const TARGET_MS=1000/24;
+function requestRender(){dirty=true;if(!raf)raf=requestAnimationFrame(frame)}
+function frame(t){
+  raf=0;const animating=state.animate&&(state.mode==='pulseScreen'||state.mode==='towerScreen')&&!document.hidden;
+  if(animating&&t-lastFrame<TARGET_MS){raf=requestAnimationFrame(frame);return}lastFrame=t;if(!dirty&&!animating)return;dirty=false;
+  ctx.clearRect(0,0,innerWidth,innerHeight);
+  if(state.mode==='topographic')drawTopographic(0);else if(state.mode==='gridMap')drawGridMode(0);else if(state.mode==='pulseScreen')drawPulseScreen(t);else drawTowerScreen(t);
+  if(animating)raf=requestAnimationFrame(frame);
+}
+
+function syncUI(){
+  for(const [k,v] of Object.entries(state))if(controls[k]){if(controls[k].type==='checkbox')controls[k].checked=v;else if(controls[k].tagName==='SELECT'||controls[k].tagName==='INPUT')controls[k].value=v}
+  for(const k in labels)labels[k].textContent=k==='gridPixel'?`${state[k]} px`:k==='pixelStretch'?`${fmt(state[k])}x`:fmt(state[k]);
+  colorInputs.forEach((inp,i)=>inp.value=state.palette[i]||'#000000');syncJson();
+}
+function syncJson(){controls.jsonBox.value=JSON.stringify({mode:state.mode,palettePreset:state.palettePreset,palette:state.palette,spots:state.spots,levels:state.levels,distance:state.distance,distanceVariance:state.distanceVariance,connectedness:state.connectedness,warp:state.warp,gridPixel:state.gridPixel,pixelStretch:state.pixelStretch,lineOpacity:state.lineOpacity,materialOpacity:state.materialOpacity,pulseSpeed:state.pulseSpeed,pulseAmount:state.pulseAmount,blur:state.blur,glow:state.glow,animate:state.animate,seed:state.seed,blobs:state.blobs},null,2)}
+function applyStateFromObject(obj){Object.assign(state,obj);if(Array.isArray(obj.palette))state.palette=obj.palette.slice(0,6);if(Array.isArray(obj.blobs))state.blobs=obj.blobs;if(!state.blobs||!state.blobs.length)generateBlobs();pulseCacheKey='';towerCacheKey='';syncUI();requestRender()}
+function randomizeColors(){const keys=presetNames.filter(n=>n!=='Custom');const name=keys[(Math.random()*keys.length)|0];state.palettePreset=name;state.palette=[...presets[name]];pulseCacheKey='';towerCacheKey='';syncUI();requestRender()}
+function randomizeForm(){state.seed=(Math.random()*1e9)|0;generateBlobs();pulseCacheKey='';towerCacheKey='';syncUI();requestRender()}
+
+for(const name of presetNames){const o=document.createElement('option');o.value=name;o.textContent=name;controls.palettePreset.appendChild(o)}
+buildSwatches();
+for(const [key,el] of Object.entries(controls)){
+  if(['jsonBox','palettePreset','mode','animate'].includes(key))continue;
+  el.addEventListener('input',()=>{state[key]=el.type==='range'||el.type==='number'?+el.value:el.value;if(['spots','distance','distanceVariance','connectedness','warp','gridPixel','pixelStretch','levels'].includes(key)){pulseCacheKey='';towerCacheKey=''}syncUI();requestRender()});
+}
+controls.mode.addEventListener('change',()=>{state.mode=controls.mode.value;if(state.mode==='pulseScreen'){state.gridPixel=Math.min(state.gridPixel,16);state.pixelStretch=Math.max(1.18,Math.min(1.55,state.pixelStretch));state.lineOpacity=0;state.blur=Math.min(state.blur,7);state.pulseAmount=Math.min(state.pulseAmount,.36)}if(state.mode==='towerScreen'){state.gridPixel=Math.max(13,Math.min(24,state.gridPixel));state.pixelStretch=Math.max(1.05,Math.min(1.65,state.pixelStretch));state.lineOpacity=0;state.blur=Math.min(state.blur,8);state.pulseAmount=Math.min(state.pulseAmount,.34);state.animate=true}pulseCacheKey='';towerCacheKey='';syncUI();requestRender()});
+controls.palettePreset.addEventListener('change',()=>{state.palettePreset=controls.palettePreset.value;if(presets[state.palettePreset])state.palette=[...presets[state.palettePreset]];pulseCacheKey='';towerCacheKey='';syncUI();requestRender()});
+controls.animate.addEventListener('change',()=>{state.animate=controls.animate.checked;syncUI();requestRender()});
+document.getElementById('randomizeForm').onclick=randomizeForm;
+document.getElementById('randomizeColors').onclick=randomizeColors;
+document.getElementById('copyJson').onclick=async()=>{syncJson();try{await navigator.clipboard.writeText(controls.jsonBox.value)}catch(e){}};
+document.getElementById('savePng').onclick=()=>{const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='gradient-screen.png';a.click()};
+document.getElementById('applyJson').onclick=()=>{try{applyStateFromObject(JSON.parse(controls.jsonBox.value))}catch(e){alert('Invalid JSON')}};
+document.getElementById('formatJson').onclick=()=>{try{controls.jsonBox.value=JSON.stringify(JSON.parse(controls.jsonBox.value),null,2)}catch(e){alert('Invalid JSON')}};
+
+setCanvas();generateBlobs();syncUI();requestRender();
+</script>
 </body>
 </html>
